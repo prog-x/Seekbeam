@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using Seekbeam.Core.Catalog;
 using Seekbeam.Core.Config;
+using Seekbeam.Core.Indexing;
 using Seekbeam.Core.Engine;
 using Seekbeam.Core.Search;
 using Seekbeam.Core.Storage;
@@ -87,6 +89,24 @@ public sealed class IndexingIntegrationTests : IDisposable
         Assert.Empty(Find("index.js"));      // node_modules excluded
         Assert.Empty(Find("tmp.docx"));      // ~$* excluded globally
         Assert.Contains(Path.Combine(_src, @"deep\l1\l2\l3\l4\l5\profond.txt"), Find("profond"));
+    }
+
+    /// <summary>
+    /// Regression (flaky on CI): a command posted but not yet executed is work in progress. Before the fix the indexer
+    /// reported "idle, empty queue" until it picked the command up, so a search right after start could find nothing.
+    /// </summary>
+    [Fact]
+    public void PostedCommandCountsAsWorkUntilItsQueueDrains()
+    {
+        var storage = new SeekbeamStorage(_data);
+        new ConfigStore(storage).Update(c => { c.Roots = [new RootConfig { Path = _src }]; c.General.FirstRunCompleted = true; });
+        _engine = new SeekbeamEngine(storage, new EngineOptions { Unthrottled = true, EnableApps = false, EnableRecentItems = false });
+        _engine.Indexer.Post(new ReconcileCommand(null, QueuePriority.Reconcile)); // indexer thread not started yet
+        Assert.True(_engine.Indexer.Stats().Busy, "a pending command must count as work");
+        _engine.Start();
+        WaitIdle();
+        Assert.False(_engine.Indexer.Stats().Busy);
+        Assert.Contains(Path.Combine(_src, @"Projets\Alpha\notes_réunion.txt"), Find("reunion notes"));
     }
 
     [Fact]

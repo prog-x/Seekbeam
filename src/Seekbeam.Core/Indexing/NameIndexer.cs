@@ -57,6 +57,8 @@ public sealed class NameIndexer : IDisposable
     private volatile ContentEligibility _content;
     private volatile string? _current;
     private volatile bool _busy;
+    /// <summary>Commands posted and not yet executed: work exists even before the queue has been filled.</summary>
+    private long _pendingCommands;
     private long _queueLength;
     private long _deferred;
     private readonly Stopwatch _rateWindow = Stopwatch.StartNew();
@@ -92,7 +94,7 @@ public sealed class NameIndexer : IDisposable
         _thread.Start();
     }
 
-    public void Post(IndexCommand cmd) { _commands.Enqueue(cmd); Interlocked.Exchange(ref _countTicks, 0); _wake.Set(); }
+    public void Post(IndexCommand cmd) { Interlocked.Increment(ref _pendingCommands); _commands.Enqueue(cmd); Interlocked.Exchange(ref _countTicks, 0); _wake.Set(); }
     public void Wake() { Interlocked.Exchange(ref _countTicks, 0); _wake.Set(); }
 
     /// <summary>Exact queue length (read from the persistent queue, not a cached value).</summary>
@@ -127,7 +129,7 @@ public sealed class NameIndexer : IDisposable
         {
             QueueLength = CountQueue(), Deferred = Interlocked.Read(ref _deferred), DirectoriesScanned = c.DirectoriesScanned, Added = c.Added,
             Updated = c.Updated, Deleted = c.Deleted, Errors = c.Errors, ContentQueued = c.ContentQueued,
-            EntriesPerSecond = _rate, CurrentDirectory = _current, Busy = _busy,
+            EntriesPerSecond = _rate, CurrentDirectory = _current, Busy = _busy || Interlocked.Read(ref _pendingCommands) > 0,
         };
     }
 
@@ -142,7 +144,13 @@ public sealed class NameIndexer : IDisposable
         {
             try
             {
-                while (_commands.TryDequeue(out var cmd)) Execute(cmd);
+                while (_commands.TryDequeue(out var cmd))
+                {
+                    // Busy from the moment a command is posted until the queue it fills has drained (see Stats().Busy).
+                    _busy = true;
+                    try { Execute(cmd); }
+                    finally { Interlocked.Decrement(ref _pendingCommands); }
+                }
                 _gate.WaitTurn(WorkClass.Names, ct);
                 int processed = ProcessQueueBatch(disk, ct);
                 if (processed == 0)
