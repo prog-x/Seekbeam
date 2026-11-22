@@ -166,7 +166,10 @@ public sealed class IntegrityTests(ITestOutputHelper output) : IDisposable
         SqliteConnection.ClearAllPools();
 
         var p1 = Process.Start(new ProcessStartInfo(AppPath, $"--background --data \"{data}\"") { UseShellExecute = false })!;
-        Thread.Sleep(2500);
+        // Kill only once the session is really running (catalog open, "unclean" marker written): a fixed delay is
+        // not enough on a cold CI machine, where the process could be killed before it even opened its catalog.
+        Assert.True(WaitSessionStarted(Path.Combine(data, "db", "catalog.db"), 60_000), "first session did not start");
+        Thread.Sleep(300); // a little indexing work in flight
         KillTree(p1); // forced stop / crash in the middle of indexing
 
         var p2 = Process.Start(new ProcessStartInfo(AppPath, $"--background --data \"{data}\"") { UseShellExecute = false })!;
@@ -178,6 +181,29 @@ public sealed class IntegrityTests(ITestOutputHelper output) : IDisposable
         Assert.Contains("ended abnormally", log);   // crash detected
         Assert.Contains("Stopped cleanly", log);    // graceful shutdown via --exit
         AssertUnchanged(before, SourceSnapshot.Take(info.Root));
+    }
+
+    /// <summary>True once the catalog records a session in progress (<c>clean_shutdown = 0</c>, written when it opens).</summary>
+    private static bool WaitSessionStarted(string db, int timeoutMs)
+    {
+        var sw = Stopwatch.StartNew();
+        while (sw.ElapsedMilliseconds < timeoutMs)
+        {
+            if (File.Exists(db))
+            {
+                try
+                {
+                    using var c = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = db, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString());
+                    c.Open();
+                    using var cmd = c.CreateCommand();
+                    cmd.CommandText = "SELECT value FROM meta WHERE key = 'clean_shutdown'";
+                    if (cmd.ExecuteScalar() as string == "0") return true;
+                }
+                catch (SqliteException) { } // being created: retry
+            }
+            Thread.Sleep(100);
+        }
+        return false;
     }
 
     private static bool WaitQueuesEmpty(string db, int timeoutMs)
