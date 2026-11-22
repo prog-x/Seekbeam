@@ -1,0 +1,35 @@
+T:System.IO.File;Use SourceFileAccess (read) or SeekbeamStorage (Seekbeam data) - FILE_IMMUTABILITY_POLICY
+T:System.IO.FileInfo;Use SourceFileAccess / SeekbeamStorage
+T:System.IO.Directory;Use SourceFileAccess / SeekbeamStorage
+T:System.IO.DirectoryInfo;Use SourceFileAccess / SeekbeamStorage
+T:System.IO.FileSystemInfo;Use SourceFileAccess / SeekbeamStorage
+T:System.IO.FileStream;Use SourceFileAccess.OpenRead or SeekbeamStorage
+T:System.IO.RandomAccess;Use SourceFileAccess / SeekbeamStorage
+T:System.IO.MemoryMappedFiles.MemoryMappedFile;Use SeekbeamStorage segment files
+T:System.IO.Compression.ZipFile;Never extract archives to disk
+T:System.IO.Compression.ZipFileExtensions;Never extract archives to disk
+M:System.IO.Compression.ZipArchiveEntry.ExtractToFile(System.String);Never extract archives to disk
+M:System.IO.Compression.ZipArchiveEntry.ExtractToFile(System.String,System.Boolean);Never extract archives to disk
+M:System.IO.Path.GetTempFileName;Creates a file outside Seekbeam data dir - use SeekbeamStorage.CreateTempFile
+M:System.IO.StreamWriter.#ctor(System.String);Writes a file - use SeekbeamStorage
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean);Writes a file - use SeekbeamStorage
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean,System.Text.Encoding);Writes a file - use SeekbeamStorage
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean,System.Text.Encoding,System.Int32);Writes a file - use SeekbeamStorage
+M:System.IO.StreamWriter.#ctor(System.String,System.IO.FileStreamOptions);Writes a file - use SeekbeamStorage
+M:System.IO.StreamWriter.#ctor(System.String,System.Text.Encoding,System.IO.FileStreamOptions);Writes a file - use SeekbeamStorage
+M:System.IO.StreamReader.#ctor(System.String);Use SourceFileAccess.OpenRead
+M:System.IO.StreamReader.#ctor(System.String,System.Boolean);Use SourceFileAccess.OpenRead
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding);Use SourceFileAccess.OpenRead
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding,System.Boolean);Use SourceFileAccess.OpenRead
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding,System.Boolean,System.Int32);Use SourceFileAccess.OpenRead
+M:System.IO.StreamReader.#ctor(System.String,System.IO.FileStreamOptions);Use SourceFileAccess.OpenRead
+M:System.IO.StreamReader.#ctor(System.String,System.Text.Encoding,System.Boolean,System.IO.FileStreamOptions);Use SourceFileAccess.OpenRead
+M:Microsoft.Data.Sqlite.SqliteConnection.#ctor(System.String);Use SeekbeamStorage.OpenDatabase
+M:Microsoft.Data.Sqlite.SqliteConnection.BackupDatabase(Microsoft.Data.Sqlite.SqliteConnection);Use SeekbeamStorage
+M:Microsoft.Data.Sqlite.SqliteConnection.BackupDatabase(Microsoft.Data.Sqlite.SqliteConnection,System.String,System.String);Use SeekbeamStorage
+P:Microsoft.Data.Sqlite.SqliteConnection.ConnectionString;Use SeekbeamStorage.OpenDatabase
+M:System.Diagnostics.Process.Start;Launching processes only in Shell launcher / ExtractorClient
+M:System.Diagnostics.Process.Start(System.Diagnostics.ProcessStartInfo);Launching processes only in Shell launcher / ExtractorClient
+M:System.Diagnostics.Process.Start(System.String);Launching processes only in Shell launcher / ExtractorClient
+M:System.Diagnostics.Process.Start(System.String,System.String);Launching processes only in Shell launcher / ExtractorClient
+M:System.Diagnostics.Process.Start(System.String,System.Collections.Generic.IEnumerable{System.String});Launching processes only in Shell launcher / ExtractorClient

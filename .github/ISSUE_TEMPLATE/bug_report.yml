@@ -1,0 +1,62 @@
+name: Bug report
+description: Something does not work as expected (issues may be written in English or French).
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Security issue, or Seekbeam modified one of your files?** Do not open a public issue: follow [SECURITY.md](../blob/main/SECURITY.md).
+        Les signalements en français sont les bienvenus.
+  - type: input
+    id: version
+    attributes:
+      label: Seekbeam version
+      description: First line of the log (Dashboard › Open logs), or Properties › Details of Seekbeam.exe.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      options: [MSI installer, Portable zip, Built from source]
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      description: "Run `winver`. Example: Windows 11 24H2, build 26100."
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: UI language
+      options: [English, Français, Deutsch, Italiano]
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: scale
+    attributes:
+      label: Index size and locations (if relevant)
+      description: Number of indexed items (Dashboard), file system type (NTFS, network share, OneDrive…).
+  - type: textarea
+    id: log
+    attributes:
+      label: Log excerpt
+      description: |
+        From %LOCALAPPDATA%\Seekbeam\logs (Dashboard › Open logs). Logs may contain file paths: enable
+        Settings › Search & privacy › Hide paths in logs, or edit them out before pasting.
+      render: text

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Seekbeam.Extraction</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Seekbeam.Core\Seekbeam.Core.csproj" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Seekbeam.Extraction.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,50 @@
+# Dependency updates (SECURITY.md, "Keeping dependencies up to date").
+# - Version updates: the schedules below open grouped pull requests; CI (build + every test, including the
+#   immutability and sandbox tests) must pass before merging.
+# - Security updates: enable "Dependabot alerts" and "Dependabot security updates" in the repository settings
+#   (Settings > Code security). They are opened as soon as an advisory is published, independently of these schedules.
+# - Between two runs, NuGet audit fails the CI build on any package with a known vulnerability (Directory.Build.props).
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: [dependencies]
+    ignore:
+      # WiX v7 enforces acceptance of the Open Source Maintenance Fee EULA (v1.1); stay on v6 until reviewed (ROADMAP.md §2).
+      - dependency-name: "WixToolset.*"
+        update-types: ["version-update:semver-major"]
+      # Microsoft.* runtime packages follow the .NET major version (net10.0, LTS): majors come with a deliberate framework upgrade.
+      - dependency-name: "Microsoft.Data.Sqlite*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Parsers of untrusted documents: the most exposed code. Kept in their own group so their fixes are never held back.
+      document-parsers:
+        patterns: ["PdfPig*", "UglyToad.*"]
+      sqlite:
+        patterns: ["Microsoft.Data.Sqlite*", "SQLitePCLRaw*"]
+      test-and-build-tools:
+        patterns: ["xunit*", "Microsoft.NET.Test.Sdk", "Microsoft.CodeAnalysis.*", "WixToolset.*"]
+
+  # The release is self-contained: the .NET runtime shipped to users (and its security fixes) comes from this SDK.
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies]
+    groups:
+      actions:
+        patterns: ["*"]

@@ -1,0 +1,82 @@
+<Window x:Class="Seekbeam.App.Windows.DashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:Seekbeam.App.Localization"
+        Title="{l:Tr Dash_Title}" Width="980" Height="700" Style="{StaticResource ToolWindow}" WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="12">
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Button x:Name="PauseBtn" Content="{l:Tr Dash_Pause}" Click="Pause_Click" />
+            <Button Content="{l:Tr Dash_Reconcile}" Click="Reconcile_Click" />
+            <Button Content="{l:Tr Dash_ReindexNames}" Click="ReindexNames_Click" />
+            <Button Content="{l:Tr Dash_ReindexContent}" Click="ReindexContent_Click" />
+            <Button Content="{l:Tr Dash_Maintenance}" Click="Maintenance_Click" />
+            <Button Content="{l:Tr Dash_ClearErrors}" Click="ClearErrors_Click" />
+            <Button Content="{l:Tr Dash_OpenLogs}" Click="Logs_Click" />
+        </WrapPanel>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <UniformGrid Columns="3" Margin="0,0,0,10">
+                <GroupBox Header="{l:Tr Dash_NamesGroup}"><TextBlock x:Name="NamesText" TextWrapping="Wrap" /></GroupBox>
+                <GroupBox Header="{l:Tr Dash_ContentGroup}" Margin="10,0,10,10">
+                    <StackPanel>
+                        <TextBlock x:Name="ContentText" TextWrapping="Wrap" />
+                        <!-- Where every file of the name index stands (ContentCoverage): the counters add up to the file count. -->
+                        <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Margin="0,6,0,0" Padding="0,6,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="CoverageText" TextWrapping="Wrap" />
+                                <Expander x:Name="CoverageDetails" Margin="0,4,0,0" Visibility="Collapsed">
+                                    <TextBlock x:Name="CoverageDetailText" TextWrapping="Wrap" Margin="16,2,0,0" />
+                                </Expander>
+                                <DockPanel Margin="0,4,0,0">
+                                    <Button DockPanel.Dock="Right" Content="{l:Tr Dash_CoverageRefresh}" Click="CoverageRefresh_Click" Padding="8,1" Margin="0" />
+                                    <TextBlock x:Name="CoverageStatus" Foreground="{DynamicResource SubFgBrush}" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Header="{l:Tr Dash_ResourcesGroup}"><TextBlock x:Name="ResourcesText" TextWrapping="Wrap" /></GroupBox>
+            </UniformGrid>
+            <GroupBox Grid.Row="1" Header="{l:Tr Dash_RootsGroup}">
+                <StackPanel>
+                    <ListView x:Name="RootsView" MaxHeight="160" BorderThickness="0">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="{l:Tr Col_Path}" Width="380" DisplayMemberBinding="{Binding Path}" />
+                                <GridViewColumn Header="{l:Tr Col_State}" Width="90" DisplayMemberBinding="{Binding StateText}" />
+                                <GridViewColumn Header="{l:Tr Col_Depth}" Width="240" DisplayMemberBinding="{Binding DepthText}" />
+                                <GridViewColumn Header="{l:Tr Col_FullScan}" Width="140" DisplayMemberBinding="{Binding FullScan}" />
+                                <GridViewColumn Header="{l:Tr Col_Reconcile}" Width="140" DisplayMemberBinding="{Binding Reconcile}" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <!-- Shown when a root's MaxDepth leaves folders unexplored. -->
+                    <Border x:Name="DepthPanel" Visibility="Collapsed" BorderThickness="1" BorderBrush="#E0A030" Background="#22E0A030" Padding="8" Margin="0,6,0,0">
+                        <StackPanel>
+                            <TextBlock x:Name="DepthText" TextWrapping="Wrap" />
+                            <ListBox x:Name="DepthList" MaxHeight="110" Margin="0,6,0,6" BorderThickness="0" Background="Transparent"
+                                     MouseDoubleClick="DepthList_DoubleClick" ToolTip="{l:Tr Dash_DepthListTip}" />
+                            <Button Content="{l:Tr Dash_DepthSettings}" HorizontalAlignment="Left" Click="DepthSettings_Click" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Grid.Row="2" Header="{l:Tr Dash_ErrorsGroup}">
+                <ListView x:Name="ErrorsView" BorderThickness="0">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="{l:Tr Col_Time}" Width="140" DisplayMemberBinding="{Binding Time}" />
+                            <GridViewColumn Header="{l:Tr Col_Component}" Width="100" DisplayMemberBinding="{Binding Component}" />
+                            <GridViewColumn Header="{l:Tr Col_Path}" Width="380" DisplayMemberBinding="{Binding Path}" />
+                            <GridViewColumn Header="{l:Tr Col_Message}" Width="300" DisplayMemberBinding="{Binding Message}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </GroupBox>
+        </Grid>
+    </DockPanel>
+</Window>

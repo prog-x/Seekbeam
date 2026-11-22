@@ -1,0 +1,12 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+  <PropertyGroup>
+    <OutputName>Seekbeam-$(Version)-x64</OutputName>
+    <Platform>x64</Platform>
+    <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\artifacts\publish\Seekbeam\</PublishDir>
+    <DefineConstants>PublishDir=$(PublishDir);ProductVersion=$(Version)</DefineConstants>
+    <SuppressValidation>true</SuppressValidation>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="6.0.2" />
+  </ItemGroup>
+</Project>

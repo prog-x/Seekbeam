@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Seekbeam.Core\Seekbeam.Core.csproj" />
+    <ProjectReference Include="..\..\src\Seekbeam.Extraction\Seekbeam.Extraction.csproj" />
+    <ProjectReference Include="..\..\src\Seekbeam.ExtractorHost\Seekbeam.ExtractorHost.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\Seekbeam.App\Seekbeam.App.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\tools\Seekbeam.DatasetGen\SourceSnapshot.cs" Link="Shared\SourceSnapshot.cs" />
+    <Compile Include="..\..\tools\Seekbeam.DatasetGen\AuditDataset.cs" Link="Shared\AuditDataset.cs" />
+  </ItemGroup>
+</Project>

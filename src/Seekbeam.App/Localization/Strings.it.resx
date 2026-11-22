@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Seekbeam user-interface strings.
+  Strings.resx is the neutral (English) file; Strings.<lang>.resx holds one translation.
+  To translate: copy the values, keep every name and every {0}/{1:N0} placeholder unchanged. See docs/TRANSLATING.md.
+-->
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Lang_Auto" xml:space="preserve"><value>Automatica (lingua di Windows)</value></data>
+  <data name="Set_LanguageGroup" xml:space="preserve"><value>Lingua</value></data>
+  <data name="Purge_Confirm" xml:space="preserve"><value>Eliminare tutti gli indici, la cronologia e la configurazione di Seekbeam?
+I tuoi file non vengono toccati.</value></data>
+  <data name="Tray_Welcome" xml:space="preserve"><value>Premi due volte Ctrl per cercare. L'indicizzazione viene avviata in background.</value></data>
+  <data name="Tray_Search" xml:space="preserve"><value>Cerca (Ctrl Ctrl)</value></data>
+  <data name="Tray_Deep" xml:space="preserve"><value>Ricerca avanzata…</value></data>
+  <data name="Tray_Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="Tray_Pause" xml:space="preserve"><value>Sospendi indicizzazione</value></data>
+  <data name="Tray_Settings" xml:space="preserve"><value>Impostazioni…</value></data>
+  <data name="Tray_Quit" xml:space="preserve"><value>Esci da Seekbeam</value></data>
+  <data name="Depth_NoticeTitle" xml:space="preserve"><value>Seekbeam — indicizzazione incompleta</value></data>
+  <data name="Depth_NoticeOne" xml:space="preserve"><value>«{0}»: il contenuto di {1:N0} cartelle non viene esplorato perché è stata raggiunta la profondità massima ({2}).</value></data>
+  <data name="Depth_NoticeMany" xml:space="preserve"><value>{0} percorsi contengono cartelle non esplorate (profondità massima raggiunta, {1:N0} cartelle).</value></data>
+  <data name="Depth_NoticeClick" xml:space="preserve"><value>Fai clic per visualizzare i dettagli.</value></data>
+  <data name="Depth_Unlimited" xml:space="preserve"><value>illimitata</value></data>
+  <data name="Depth_Levels" xml:space="preserve"><value>{0} livelli</value></data>
+  <data name="Depth_LevelsLimited" xml:space="preserve"><value>⚠ {0} livelli · {1:N0} cartelle non esplorate</value></data>
+  <data name="Hotkey_Invalid" xml:space="preserve"><value>Scelta rapida non valida: {0}</value></data>
+  <data name="Hotkey_InUse" xml:space="preserve"><value>La scelta rapida {0} è già usata da un'altra applicazione.</value></data>
+  <data name="Launcher_SearchName" xml:space="preserve"><value>Ricerca Seekbeam</value></data>
+  <data name="Launcher_Hint" xml:space="preserve"><value>Cerca app, file, cartelle…</value></data>
+  <data name="Launcher_Busy" xml:space="preserve"><value>Indicizzazione in corso</value></data>
+  <data name="Launcher_Keys" xml:space="preserve"><value>↵ apri · Ctrl+↵ cartella · Tab azioni · Ctrl+D ricerca avanzata · Esc chiudi</value></data>
+  <data name="Launcher_ApproxTip" xml:space="preserve"><value>Corrispondenza approssimativa</value></data>
+  <data name="Launcher_NoResult" xml:space="preserve"><value>Nessun risultato · {0:N0} elementi indicizzati · {1:F0} ms</value></data>
+  <data name="Launcher_DepthHint" xml:space="preserve"><value> · ⚠ alcune cartelle non sono esplorate (profondità massima, vedi la dashboard)</value></data>
+  <data name="Launcher_Results" xml:space="preserve"><value>{0:N0} risultati{1} · {2:F0} ms</value></data>
+  <data name="Launcher_ApproxSuffix" xml:space="preserve"><value> (appross.)</value></data>
+  <data name="Launcher_Idle" xml:space="preserve"><value>{0:N0} elementi · {1} applicazioni</value></data>
+  <data name="Launcher_Copied" xml:space="preserve"><value>Copiato negli Appunti</value></data>
+  <data name="Launcher_FavAdded" xml:space="preserve"><value>Aggiunto ai preferiti</value></data>
+  <data name="Launcher_FavRemoved" xml:space="preserve"><value>Rimosso dai preferiti</value></data>
+  <data name="Kind_Application" xml:space="preserve"><value>Applicazione</value></data>
+  <data name="Kind_StoreApp" xml:space="preserve"><value>App dello Store</value></data>
+  <data name="Kind_Folder" xml:space="preserve"><value>Cartella</value></data>
+  <data name="Size_B" xml:space="preserve"><value>{0} B</value></data>
+  <data name="Size_KB" xml:space="preserve"><value>{0:0.#} KB</value></data>
+  <data name="Size_MB" xml:space="preserve"><value>{0:0.#} MB</value></data>
+  <data name="Size_GB" xml:space="preserve"><value>{0:0.##} GB</value></data>
+  <data name="Size_MBValue" xml:space="preserve"><value>{0:N1} MB</value></data>
+  <data name="Deep_Title" xml:space="preserve"><value>Seekbeam — Ricerca avanzata</value></data>
+  <data name="Deep_QueryTip" xml:space="preserve"><value>Parole (AND), &quot;frase esatta&quot;, OR, -escludi, prefisso*, ext:pdf, in:cartella</value></data>
+  <data name="Deep_SearchButton" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Deep_Scope" xml:space="preserve"><value>Ambito</value></data>
+  <data name="Deep_ScopeBoth" xml:space="preserve"><value>Nomi e contenuto</value></data>
+  <data name="Deep_ScopeContent" xml:space="preserve"><value>Solo contenuto</value></data>
+  <data name="Deep_ScopeNames" xml:space="preserve"><value>Solo nomi</value></data>
+  <data name="Deep_Types" xml:space="preserve"><value>Tipi</value></data>
+  <data name="Deep_TypesTip" xml:space="preserve"><value>Estensioni separate da virgole, ad es. pdf,docx</value></data>
+  <data name="Deep_Location" xml:space="preserve"><value>Percorso</value></data>
+  <data name="Deep_AllLocations" xml:space="preserve"><value>Tutti i percorsi</value></data>
+  <data name="Deep_Modified" xml:space="preserve"><value>Modificato</value></data>
+  <data name="Deep_DateAny" xml:space="preserve"><value>In qualsiasi momento</value></data>
+  <data name="Deep_DateToday" xml:space="preserve"><value>Oggi</value></data>
+  <data name="Deep_Date7" xml:space="preserve"><value>Ultimi 7 giorni</value></data>
+  <data name="Deep_Date30" xml:space="preserve"><value>Ultimi 30 giorni</value></data>
+  <data name="Deep_DateYear" xml:space="preserve"><value>Quest'anno</value></data>
+  <data name="Deep_DateOlder" xml:space="preserve"><value>Più di un anno fa</value></data>
+  <data name="Deep_Size" xml:space="preserve"><value>Dimensione</value></data>
+  <data name="Deep_SizeAny" xml:space="preserve"><value>Qualsiasi</value></data>
+  <data name="Deep_SizeSmall" xml:space="preserve"><value>&lt; 100 KB</value></data>
+  <data name="Deep_SizeMedium" xml:space="preserve"><value>100 KB – 10 MB</value></data>
+  <data name="Deep_SizeLarge" xml:space="preserve"><value>&gt; 10 MB</value></data>
+  <data name="Deep_Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="Deep_Folder" xml:space="preserve"><value>Cartella</value></data>
+  <data name="Deep_Actions" xml:space="preserve"><value>Azioni…</value></data>
+  <data name="Deep_Searching" xml:space="preserve"><value>Ricerca in corso…</value></data>
+  <data name="Deep_Status" xml:space="preserve"><value>{0:N0} risultati visualizzati su {1:N0} · {2:F0} ms</value></data>
+  <data name="Deep_StatusContentQueue" xml:space="preserve"><value> · indicizzazione del contenuto in corso ({0:N0} file in attesa)</value></data>
+  <data name="Deep_InfoModified" xml:space="preserve"><value>{0} · modificato il {1:g}</value></data>
+  <data name="Deep_InfoContent" xml:space="preserve"><value>Contenuto: {0} ({1:N0} caratteri, estrattore {2})</value></data>
+  <data name="Deep_NoText" xml:space="preserve"><value>(nessun testo indicizzato per questo file)</value></data>
+  <data name="ContentStatus_Indexed" xml:space="preserve"><value>indicizzato</value></data>
+  <data name="ContentStatus_Empty" xml:space="preserve"><value>vuoto</value></data>
+  <data name="ContentStatus_Failed" xml:space="preserve"><value>non riuscito</value></data>
+  <data name="ContentStatus_Skipped" xml:space="preserve"><value>ignorato</value></data>
+  <data name="ContentStatus_Encrypted" xml:space="preserve"><value>crittografato</value></data>
+  <data name="ContentStatus_TooLarge" xml:space="preserve"><value>troppo grande</value></data>
+  <data name="Action_Launch" xml:space="preserve"><value>Avvia</value></data>
+  <data name="Action_Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="Action_OpenTip" xml:space="preserve"><value>Windows apre l'elemento con l'applicazione associata, che potrebbe modificare il file (al di fuori del controllo di Seekbeam).</value></data>
+  <data name="Action_OpenFolder" xml:space="preserve"><value>Apri percorso file</value></data>
+  <data name="Action_RunAsAdmin" xml:space="preserve"><value>Esegui come amministratore</value></data>
+  <data name="Action_OpenWith" xml:space="preserve"><value>Apri con…</value></data>
+  <data name="Action_CopyPath" xml:space="preserve"><value>Copia percorso completo</value></data>
+  <data name="Action_CopyName" xml:space="preserve"><value>Copia nome</value></data>
+  <data name="Action_CopyContent" xml:space="preserve"><value>Copia contenuto (testo indicizzato)</value></data>
+  <data name="Action_Properties" xml:space="preserve"><value>Proprietà</value></data>
+  <data name="Action_FavAdd" xml:space="preserve"><value>Aggiungi ai preferiti</value></data>
+  <data name="Action_FavRemove" xml:space="preserve"><value>Rimuovi dai preferiti</value></data>
+  <data name="Action_Exclude" xml:space="preserve"><value>Escludi dall'indice</value></data>
+  <data name="Action_ExcludeConfirm" xml:space="preserve"><value>Escludere dall'indicizzazione:
+{0}
+
+Il file stesso non viene modificato.</value></data>
+  <data name="Action_Reindex" xml:space="preserve"><value>Reindicizza</value></data>
+  <data name="Key_Enter" xml:space="preserve"><value>Invio</value></data>
+  <data name="Key_CtrlEnter" xml:space="preserve"><value>Ctrl+Invio</value></data>
+  <data name="Key_ShiftEnter" xml:space="preserve"><value>Maiusc+Invio</value></data>
+  <data name="Key_AltEnter" xml:space="preserve"><value>Alt+Invio</value></data>
+  <data name="Key_CtrlC" xml:space="preserve"><value>Ctrl+C</value></data>
+  <data name="Key_CtrlShiftC" xml:space="preserve"><value>Ctrl+Maiusc+C</value></data>
+  <data name="Key_CtrlF" xml:space="preserve"><value>Ctrl+F</value></data>
+  <data name="Dash_Title" xml:space="preserve"><value>Seekbeam — Dashboard</value></data>
+  <data name="Dash_Pause" xml:space="preserve"><value>Sospendi</value></data>
+  <data name="Dash_Resume" xml:space="preserve"><value>Riprendi</value></data>
+  <data name="Dash_Reconcile" xml:space="preserve"><value>Riconcilia ora</value></data>
+  <data name="Dash_ReindexNames" xml:space="preserve"><value>Reindicizza nomi</value></data>
+  <data name="Dash_ReindexContent" xml:space="preserve"><value>Reindicizza contenuto</value></data>
+  <data name="Dash_ReindexContentConfirm" xml:space="preserve"><value>Svuotare l'indice del contenuto e ripetere l'estrazione di tutti i documenti?</value></data>
+  <data name="Dash_Maintenance" xml:space="preserve"><value>Manutenzione (compattazione)</value></data>
+  <data name="Dash_ClearErrors" xml:space="preserve"><value>Cancella errori</value></data>
+  <data name="Dash_OpenLogs" xml:space="preserve"><value>Apri log</value></data>
+  <data name="Dash_NamesGroup" xml:space="preserve"><value>Indice dei nomi</value></data>
+  <data name="Dash_ContentGroup" xml:space="preserve"><value>Indice del contenuto</value></data>
+  <data name="Dash_ResourcesGroup" xml:space="preserve"><value>Risorse</value></data>
+  <data name="Dash_RootsGroup" xml:space="preserve"><value>Percorsi indicizzati</value></data>
+  <data name="Dash_ErrorsGroup" xml:space="preserve"><value>Errori recenti (file inaccessibili, estrazioni non riuscite…)</value></data>
+  <data name="Col_Path" xml:space="preserve"><value>Percorso</value></data>
+  <data name="Col_State" xml:space="preserve"><value>Stato</value></data>
+  <data name="Col_Depth" xml:space="preserve"><value>Profondità</value></data>
+  <data name="Col_FullScan" xml:space="preserve"><value>Ultima scansione completa</value></data>
+  <data name="Col_Reconcile" xml:space="preserve"><value>Ultima riconciliazione</value></data>
+  <data name="Col_Time" xml:space="preserve"><value>Ora</value></data>
+  <data name="Col_Component" xml:space="preserve"><value>Componente</value></data>
+  <data name="Col_Message" xml:space="preserve"><value>Messaggio</value></data>
+  <data name="State_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="State_Unavailable" xml:space="preserve"><value>Non disponibile</value></data>
+  <data name="Dash_DepthListTip" xml:space="preserve"><value>Fai doppio clic per aprire la cartella in Esplora file</value></data>
+  <data name="Dash_DepthSettings" xml:space="preserve"><value>Modifica la profondità…</value></data>
+  <data name="Dash_DepthText" xml:space="preserve"><value>Indicizzazione incompleta: la profondità massima è stata raggiunta in {0:N0} cartelle. Il loro contenuto ({1:N0} elementi diretti, e tutto ciò che contengono) non è indicizzato né ricercabile. Per includerlo, aumenta la profondità (o imposta -1 per illimitata) in Impostazioni › Percorsi, oppure aggiungi la cartella come percorso separato. Cartelle interessate (le più piene per prime):</value></data>
+  <data name="Dash_DepthItem" xml:space="preserve"><value>{0}   ({1:N0} elementi)</value></data>
+  <data name="Dash_NamesEntries" xml:space="preserve"><value>{0:N0} elementi ({1:N0} file, {2:N0} cartelle)</value></data>
+  <data name="Dash_NamesApps" xml:space="preserve"><value>{0} applicazioni</value></data>
+  <data name="Dash_NamesIndex" xml:space="preserve"><value>Indice: {0} · catalogo {1}</value></data>
+  <data name="Dash_NamesDelta" xml:space="preserve"><value>Delta in memoria: {0:N0} record</value></data>
+  <data name="Dash_NamesQueue" xml:space="preserve"><value>Coda: {0:N0} cartelle · {1}</value></data>
+  <data name="Dash_Rate" xml:space="preserve"><value>{0:N0} voci/s</value></data>
+  <data name="Dash_Idle" xml:space="preserve"><value>inattivo</value></data>
+  <data name="Dash_NamesCounts" xml:space="preserve"><value>Aggiunti {0:N0} · aggiornati {1:N0} · eliminati {2:N0} · errori {3:N0}</value></data>
+  <data name="Dash_Watch" xml:space="preserve"><value>Monitoraggio: {0} watcher, {1:N0} eventi, {2} overflow</value></data>
+  <data name="Dash_Discovery" xml:space="preserve"><value>Rilevamento opportunistico: {0:N0}</value></data>
+  <data name="Dash_Current" xml:space="preserve"><value>In corso: {0}</value></data>
+  <data name="Dash_ContentDocs" xml:space="preserve"><value>{0:N0} documenti indicizzati · {1:N0} errori</value></data>
+  <data name="Dash_ContentSize" xml:space="preserve"><value>Dimensione: {0}</value></data>
+  <data name="Dash_ContentQueue" xml:space="preserve"><value>Coda: {0:N0} file</value></data>
+  <data name="Dash_ContentRate" xml:space="preserve"><value>{0:N1} file/s</value></data>
+  <data name="Dash_ContentRead" xml:space="preserve"><value>{0} · {1} letti</value></data>
+  <data name="Dash_ContentSkipped" xml:space="preserve"><value>Scartati dall&apos;estrattore (invariati o non più idonei): {0:N0}</value></data>
+  <data name="Dash_Extractor" xml:space="preserve"><value>Estrattore: {0} · riavvii {1}</value></data>
+  <data name="Dash_ExtractorStopped" xml:space="preserve"><value>arrestato</value></data>
+  <data name="Dash_Profile" xml:space="preserve"><value>Profilo: {0}</value></data>
+  <data name="Dash_ProfileReason" xml:space="preserve"><value> ({0})</value></data>
+  <data name="Dash_Activity" xml:space="preserve"><value>Nomi: {0} · Contenuto: {1}</value></data>
+  <data name="Dash_Active" xml:space="preserve"><value>attiva</value></data>
+  <data name="Dash_Paused" xml:space="preserve"><value>sospesa</value></data>
+  <data name="Dash_Process" xml:space="preserve"><value>Seekbeam: {0} privata · {1} working set · CPU {2:F1} %</value></data>
+  <data name="Dash_System" xml:space="preserve"><value>Sistema: CPU {0:F0} % · memoria {1} % · inattività {2:F0} s</value></data>
+  <data name="Dash_Battery" xml:space="preserve"><value> · batteria</value></data>
+  <data name="Dash_Fullscreen" xml:space="preserve"><value> · schermo intero</value></data>
+  <data name="Dash_HostCaps" xml:space="preserve"><value>Limiti dell'estrattore: {0} MB, {1} % CPU</value></data>
+  <data name="Profile_Economy" xml:space="preserve"><value>Risparmio</value></data>
+  <data name="Profile_Balanced" xml:space="preserve"><value>Bilanciato</value></data>
+  <data name="Profile_Performance" xml:space="preserve"><value>Prestazioni</value></data>
+  <data name="Profile_Auto" xml:space="preserve"><value>Automatico</value></data>
+  <data name="Reason_fullscreen" xml:space="preserve"><value>applicazione a schermo intero / presentazione</value></data>
+  <data name="Reason_memory" xml:space="preserve"><value>memoria di sistema satura</value></data>
+  <data name="Reason_battery" xml:space="preserve"><value>a batteria</value></data>
+  <data name="Reason_cpu" xml:space="preserve"><value>CPU di sistema satura</value></data>
+  <data name="Reason_busy" xml:space="preserve"><value>sistema occupato</value></data>
+  <data name="Reason_idle" xml:space="preserve"><value>utente inattivo</value></data>
+  <data name="Reason_normal" xml:space="preserve"><value>attività normale</value></data>
+  <data name="Set_Title" xml:space="preserve"><value>Seekbeam — Impostazioni</value></data>
+  <data name="Set_Save" xml:space="preserve"><value>Salva</value></data>
+  <data name="Set_Cancel" xml:space="preserve"><value>Annulla</value></data>
+  <data name="Tab_General" xml:space="preserve"><value>Generale</value></data>
+  <data name="Tab_Locations" xml:space="preserve"><value>Percorsi</value></data>
+  <data name="Tab_Content" xml:space="preserve"><value>Contenuto</value></data>
+  <data name="Tab_Resources" xml:space="preserve"><value>Risorse</value></data>
+  <data name="Tab_SearchPrivacy" xml:space="preserve"><value>Ricerca e privacy</value></data>
+  <data name="Tab_Watching" xml:space="preserve"><value>Monitoraggio</value></data>
+  <data name="Set_Startup" xml:space="preserve"><value>Avvio</value></data>
+  <data name="Set_StartWithWindows" xml:space="preserve"><value>Avvia Seekbeam all'avvio di Windows</value></data>
+  <data name="Set_ShowTray" xml:space="preserve"><value>Mostra l'icona nell'area di notifica (riavvio necessario)</value></data>
+  <data name="Set_Language" xml:space="preserve"><value>Lingua:</value></data>
+  <data name="Set_LanguageNote" xml:space="preserve"><value>La nuova lingua si applica al launcher e alle finestre aperte dopo il salvataggio.</value></data>
+  <data name="Set_Hotkey" xml:space="preserve"><value>Scelta rapida da tastiera</value></data>
+  <data name="Set_DoubleCtrl" xml:space="preserve"><value>Apri premendo due volte Ctrl</value></data>
+  <data name="Set_CtrlKey" xml:space="preserve"><value>Tasto Ctrl:</value></data>
+  <data name="Set_CtrlBoth" xml:space="preserve"><value>Sinistro o destro</value></data>
+  <data name="Set_CtrlLeft" xml:space="preserve"><value>Solo sinistro</value></data>
+  <data name="Set_CtrlRight" xml:space="preserve"><value>Solo destro</value></data>
+  <data name="Set_TapDelay" xml:space="preserve"><value>Intervallo doppia pressione (ms):</value></data>
+  <data name="Set_AltHotkey" xml:space="preserve"><value>Scelta rapida alternativa:</value></data>
+  <data name="Set_DeepHotkey" xml:space="preserve"><value>Ricerca avanzata:</value></data>
+  <data name="Set_Window" xml:space="preserve"><value>Finestra di ricerca</value></data>
+  <data name="Set_Position" xml:space="preserve"><value>Posizione:</value></data>
+  <data name="Set_PosCenter" xml:space="preserve"><value>Al centro</value></data>
+  <data name="Set_PosCursor" xml:space="preserve"><value>Vicino al cursore</value></data>
+  <data name="Set_MaxResults" xml:space="preserve"><value>Numero di risultati:</value></data>
+  <data name="Set_Theme" xml:space="preserve"><value>Tema:</value></data>
+  <data name="Set_ThemeSystem" xml:space="preserve"><value>Sistema</value></data>
+  <data name="Set_ThemeLight" xml:space="preserve"><value>Chiaro</value></data>
+  <data name="Set_ThemeDark" xml:space="preserve"><value>Scuro</value></data>
+  <data name="Set_Topmost" xml:space="preserve"><value>Sempre in primo piano</value></data>
+  <data name="Set_CloseOnFocusLoss" xml:space="preserve"><value>Chiudi quando la finestra perde lo stato attivo</value></data>
+  <data name="Set_LocationsIntro" xml:space="preserve"><value>Seekbeam legge questi percorsi in sola lettura e non modifica mai i file. Le esclusioni accettano nomi (node_modules), modelli (*.tmp, ~$*) o percorsi relativi (build\out).</value></data>
+  <data name="Set_Add" xml:space="preserve"><value>Aggiungi…</value></data>
+  <data name="Set_Remove" xml:space="preserve"><value>Rimuovi</value></data>
+  <data name="Set_RootEnabled" xml:space="preserve"><value>Attivato</value></data>
+  <data name="Set_RootContent" xml:space="preserve"><value>Indicizza il contenuto dei documenti</value></data>
+  <data name="Set_RootHidden" xml:space="preserve"><value>Includi i file nascosti</value></data>
+  <data name="Set_RootWatch" xml:space="preserve"><value>Monitora le modifiche in tempo reale</value></data>
+  <data name="Set_RootLinks" xml:space="preserve"><value>Segui collegamenti simbolici e junction (con protezione dai cicli)</value></data>
+  <data name="Set_RootDepth" xml:space="preserve"><value>Profondità massima (predefinita 10, -1 = illimitata):</value></data>
+  <data name="Set_RootDepthInfo" xml:space="preserve"><value>⚠ Con la profondità attuale ({0}), il contenuto di {1:N0} cartelle non viene esplorato (almeno {2:N0} elementi). L'elenco è disponibile nella dashboard.</value></data>
+  <data name="Set_RootExcludes" xml:space="preserve"><value>Esclusioni (una per riga):</value></data>
+  <data name="Set_GlobalExcludes" xml:space="preserve"><value>Esclusioni globali (tutti i percorsi):</value></data>
+  <data name="Set_AddRootTitle" xml:space="preserve"><value>Scegli una cartella o un'unità da indicizzare</value></data>
+  <data name="Set_DataDirRefused" xml:space="preserve"><value>La cartella dei dati di Seekbeam non può essere indicizzata.</value></data>
+  <data name="Set_ContentEnabled" xml:space="preserve"><value>Indicizza il contenuto dei documenti (testo completo)</value></data>
+  <data name="Set_StoreText" xml:space="preserve"><value>Conserva il testo estratto (compresso) per estratti e anteprima</value></data>
+  <data name="Set_MaxFileMB" xml:space="preserve"><value>Dimensione massima del file (MB):</value></data>
+  <data name="Set_MaxChars" xml:space="preserve"><value>Caratteri conservati per documento:</value></data>
+  <data name="Set_Timeout" xml:space="preserve"><value>Tempo massimo di estrazione (s):</value></data>
+  <data name="Set_ExcludedExt" xml:space="preserve"><value>Estensioni escluse (virgole):</value></data>
+  <data name="Set_ExtraExt" xml:space="preserve"><value>Estensioni di testo aggiuntive:</value></data>
+  <data name="Set_DisabledExtractors" xml:space="preserve"><value>Estrattori disattivati (ID):</value></data>
+  <data name="Set_Archives" xml:space="preserve"><value>Archivi ZIP</value></data>
+  <data name="Set_ArchivesEnabled" xml:space="preserve"><value>Indicizza il contenuto degli archivi (in memoria, mai estratto su disco)</value></data>
+  <data name="Set_ArchiveDepth" xml:space="preserve"><value>Profondità di annidamento:</value></data>
+  <data name="Set_ArchiveEntries" xml:space="preserve"><value>Numero massimo di voci:</value></data>
+  <data name="Set_Ocr" xml:space="preserve"><value>OCR: non incluso in questa versione (disattivato).</value></data>
+  <data name="Set_Mode" xml:space="preserve"><value>Modalità:</value></data>
+  <data name="Set_ModeAuto" xml:space="preserve"><value>Automatica (consigliata)</value></data>
+  <data name="Set_PauseFullscreen" xml:space="preserve"><value>Sospendi durante giochi, video a schermo intero e presentazioni</value></data>
+  <data name="Set_EconomyBattery" xml:space="preserve"><value>Modalità Risparmio a batteria</value></data>
+  <data name="Set_PauseContentBattery" xml:space="preserve"><value>Sospendi l'indicizzazione del contenuto a batteria</value></data>
+  <data name="Set_IdleSec" xml:space="preserve"><value>Inattività prima di accelerare (s):</value></data>
+  <data name="Set_TimeWindows" xml:space="preserve"><value>Fasce orarie per il contenuto (ad es. 22:00-07:00):</value></data>
+  <data name="Set_TimeWindowsTip" xml:space="preserve"><value>Vuoto = sempre. Più fasce separate da virgole.</value></data>
+  <data name="Set_HostMem" xml:space="preserve"><value>Memoria max. estrattore (MB, 0 = auto):</value></data>
+  <data name="Set_Fuzzy" xml:space="preserve"><value>Tollera gli errori di battitura</value></data>
+  <data name="Set_MatchPath" xml:space="preserve"><value>Cerca anche nei nomi delle cartelle superiori</value></data>
+  <data name="Set_SearchHidden" xml:space="preserve"><value>Mostra i file nascosti</value></data>
+  <data name="Set_SearchSystem" xml:space="preserve"><value>Mostra i file di sistema</value></data>
+  <data name="Set_AppsStart" xml:space="preserve"><value>Indicizza le applicazioni del menu Start</value></data>
+  <data name="Set_AppsDesktop" xml:space="preserve"><value>Indicizza i collegamenti sul desktop</value></data>
+  <data name="Set_AppsStore" xml:space="preserve"><value>Indicizza le app dello Store (UWP/MSIX)</value></data>
+  <data name="Set_ExeFolders" xml:space="preserve"><value>Cartelle di eseguibili aggiuntive (una per riga):</value></data>
+  <data name="Set_Privacy" xml:space="preserve"><value>Privacy (tutto rimane su questo computer, nessuna telemetria)</value></data>
+  <data name="Set_Learning" xml:space="preserve"><value>Impara da ciò che apro per migliorare l'ordinamento</value></data>
+  <data name="Set_History" xml:space="preserve"><value>Conserva la cronologia delle ricerche</value></data>
+  <data name="Set_Discovery" xml:space="preserve"><value>Rilevamento opportunistico tramite «Elementi recenti» di Windows</value></data>
+  <data name="Set_RedactPaths" xml:space="preserve"><value>Nascondi i percorsi nei log</value></data>
+  <data name="Set_ClearHistory" xml:space="preserve"><value>Cancella cronologia</value></data>
+  <data name="Set_ResetLearning" xml:space="preserve"><value>Reimposta apprendimento</value></data>
+  <data name="Set_PurgeLogs" xml:space="preserve"><value>Elimina log</value></data>
+  <data name="Set_WatchEnabled" xml:space="preserve"><value>Monitora le modifiche ai file in tempo reale</value></data>
+  <data name="Set_ReconcileStartup" xml:space="preserve"><value>Riconcilia l'indice all'avvio (modifiche apportate mentre Seekbeam era chiuso)</value></data>
+  <data name="Set_ReconcileHours" xml:space="preserve"><value>Riconciliazione periodica (ore):</value></data>
+  <data name="Set_DataDir" xml:space="preserve"><value>Dati di Seekbeam: </value></data>
+  <data name="Set_DataNote" xml:space="preserve"><value>Seekbeam scrive solo in questa cartella. L'apertura di un file lo affida all'applicazione Windows associata, che potrebbe modificarlo.</value></data>
+  <data name="Set_SaveFailed" xml:space="preserve"><value>Impossibile salvare: {0}</value></data>
+  <data name="Set_HistoryCleared" xml:space="preserve"><value>Cronologia cancellata.</value></data>
+  <data name="Set_LearningReset" xml:space="preserve"><value>Apprendimento reimpostato.</value></data>
+  <data name="Set_LogsPurged" xml:space="preserve"><value>Log eliminati.</value></data>
+  <data name="Set_ContentFolders" xml:space="preserve"><value>Cartelle indicizzate solo per nome</value></data>
+  <data name="Set_ContentFoldersIntro" xml:space="preserve"><value>I file di queste cartelle (e delle loro sottocartelle) restano reperibili per nome, ma il loro contenuto non viene mai letto.</value></data>
+  <data name="Set_AddContentFolderTitle" xml:space="preserve"><value>Cartelle il cui contenuto non deve mai essere letto</value></data>
+  <data name="Set_DownloadsRiskTitle" xml:space="preserve"><value>Indicizzare il contenuto di Download?</value></data>
+  <data name="Set_DownloadsRisk" xml:space="preserve"><value>Per impostazione predefinita, Seekbeam non legge il contenuto della cartella Download. I suoi file restano reperibili per nome.
+
+Perché: i file scaricati da Internet e gli allegati e-mail finiscono in Download. Per indicizzarne il contenuto, Seekbeam aprirebbe e analizzerebbe automaticamente ciascuno di essi, compresi file che non sono mai stati aperti. Un documento creato per sfruttare una vulnerabilità di un parser di formato potrebbe così essere elaborato senza alcuna azione da parte dell&apos;utente.
+
+Seekbeam riduce questo rischio: l&apos;estrazione avviene in una sandbox isolata, senza accesso alla rete né agli altri file. Ma nessun parser è garantito privo di vulnerabilità, ed escludere Download elimina completamente questa esposizione.
+
+Indicizzare comunque il contenuto di Download?</value></data>
+  <data name="Dash_Isolation" xml:space="preserve"><value>Isolamento dell&apos;estrattore: {0}</value></data>
+  <data name="Sandbox_AppContainer" xml:space="preserve"><value>AppContainer (nessuna rete, nessun accesso ai file)</value></data>
+  <data name="Sandbox_LowIntegrity" xml:space="preserve"><value>integrità bassa (nessuna scrittura; AppContainer non disponibile, vedere i log)</value></data>
+  <data name="Sandbox_None" xml:space="preserve"><value>nessuno (sandbox non disponibile, vedere i log)</value></data>
+  <data name="Launcher_IndexingBanner" xml:space="preserve"><value>Indicizzazione in corso: alcuni file potrebbero non essere ancora trovati ({0:N0} cartelle in attesa)</value></data>
+  <data name="Content_Indexed" xml:space="preserve"><value>Contenuto indicizzato: il testo è ricercabile (Ctrl+D)</value></data>
+  <data name="Content_NoText" xml:space="preserve"><value>Contenuto analizzato: nessun testo trovato (documento scansionato o immagine?)</value></data>
+  <data name="Content_Pending" xml:space="preserve"><value>Contenuto in attesa di indicizzazione</value></data>
+  <data name="Content_Failed" xml:space="preserve"><value>Estrazione del contenuto non riuscita (vedere il pannello di controllo)</value></data>
+  <data name="Content_NotIndexed" xml:space="preserve"><value>Contenuto non indicizzato: {0}</value></data>
+  <data name="ContentWhy_Disabled" xml:space="preserve"><value>l&apos;indicizzazione del contenuto è disattivata</value></data>
+  <data name="ContentWhy_RootDisabled" xml:space="preserve"><value>disattivata per questa posizione</value></data>
+  <data name="ContentWhy_EmptyFile" xml:space="preserve"><value>file vuoto</value></data>
+  <data name="ContentWhy_TooLarge" xml:space="preserve"><value>file troppo grande</value></data>
+  <data name="ContentWhy_CloudPlaceholder" xml:space="preserve"><value>file solo online (non scaricato)</value></data>
+  <data name="ContentWhy_Link" xml:space="preserve"><value>collegamento non seguito</value></data>
+  <data name="ContentWhy_ExcludedFolder" xml:space="preserve"><value>cartella esclusa dall&apos;indicizzazione del contenuto</value></data>
+  <data name="ContentWhy_ExcludedType" xml:space="preserve"><value>tipo di file escluso nelle impostazioni</value></data>
+  <data name="ContentWhy_UnsupportedType" xml:space="preserve"><value>formato non supportato (solo nome)</value></data>
+  <data name="ContentWhy_Encrypted" xml:space="preserve"><value>documento crittografato</value></data>
+  <data name="Set_HotkeyCaptureTip" xml:space="preserve"><value>Fare clic, poi premere la combinazione di tasti. Backspace la cancella.</value></data>
+  <data name="Set_HotkeyCaptureHint" xml:space="preserve"><value>Fare clic in un campo, poi premere la combinazione (ad esempio Ctrl+Alt+F). Backspace o ✕ la cancella.</value></data>
+  <data name="Set_HotkeyClear" xml:space="preserve"><value>Cancella la scelta rapida</value></data>
+  <data name="Set_HotkeyCleared" xml:space="preserve"><value>Scelta rapida cancellata (nessuna).</value></data>
+  <data name="Set_HotkeyNoModifier" xml:space="preserve"><value>Tenere premuto almeno un tasto modificatore (Ctrl, Alt, Maiusc o Win), poi premere il tasto.</value></data>
+  <data name="Set_HotkeyShiftOnly" xml:space="preserve"><value>{0} bloccherebbe la digitazione nelle altre applicazioni: aggiungere Ctrl, Alt o Win.</value></data>
+  <data name="Set_HotkeyUnsupported" xml:space="preserve"><value>Questo tasto non può essere usato per una scelta rapida globale.</value></data>
+  <data name="Set_HotkeyDuplicate" xml:space="preserve"><value>{0} è già usata dall&apos;altra scelta rapida di Seekbeam.</value></data>
+  <data name="Set_HotkeyTaken" xml:space="preserve"><value>{0} è già usata da Windows o da un&apos;altra applicazione. Scegliere un&apos;altra combinazione.</value></data>
+  <data name="Set_HotkeyOk" xml:space="preserve"><value>{0} è disponibile. Fare clic su Salva per applicarla.</value></data>
+  <data name="Tray_About" xml:space="preserve"><value>Informazioni su Seekbeam {0}</value></data>
+  <data name="Tab_About" xml:space="preserve"><value>Informazioni</value></data>
+  <data name="About_Version" xml:space="preserve"><value>Versione {0}</value></data>
+  <data name="About_Tagline" xml:space="preserve"><value>Ricerca locale rapida di applicazioni, file, cartelle e contenuto dei documenti. I tuoi dati non lasciano mai il computer.</value></data>
+  <data name="About_License" xml:space="preserve"><value>Software libero con licenza MIT, fornito «così com&apos;è», senza alcuna garanzia.</value></data>
+  <data name="About_LicenseLink" xml:space="preserve"><value>Leggi la licenza</value></data>
+  <data name="About_Immutability" xml:space="preserve"><value>Seekbeam non modifica, non sposta e non elimina mai i file che indicizza.</value></data>
+  <data name="About_ImmutabilityLink" xml:space="preserve"><value>Come viene verificato</value></data>
+  <data name="About_ThirdParty" xml:space="preserve"><value>Componenti di terze parti e relative licenze</value></data>
+  <data name="About_CopyInfo" xml:space="preserve"><value>Copia le informazioni sulla versione</value></data>
+  <data name="About_Copied" xml:space="preserve"><value>Informazioni sulla versione copiate negli appunti.</value></data>
+  <data name="Dash_ExtractorIdle" xml:space="preserve"><value>in attesa</value></data>
+  <data name="Dash_CoverageFiles" xml:space="preserve"><value>File: {0:N0}</value></data>
+  <data name="Dash_CoverageStates" xml:space="preserve"><value>{0:N0} indicizzati · {1:N0} senza testo · {2:N0} errori · {3:N0} in attesa · {4:N0} non idonei</value></data>
+  <data name="Dash_CoverageNotEligible" xml:space="preserve"><value>Non idonei: {0:N0}</value></data>
+  <data name="Dash_CoverageItem" xml:space="preserve"><value>{0}: {1:N0}</value></data>
+  <data name="Dash_CoverageExts" xml:space="preserve"><value> ({0}…)</value></data>
+  <data name="Dash_CoverageExt" xml:space="preserve"><value>{0} {1:N0}</value></data>
+  <data name="Dash_CoverageNoExt" xml:space="preserve"><value>senza estensione</value></data>
+  <data name="Dash_CoverageComputing" xml:space="preserve"><value>Ripartizione: calcolo in corso…</value></data>
+  <data name="Dash_CoverageNone" xml:space="preserve"><value>Ripartizione non ancora calcolata</value></data>
+  <data name="Dash_CoverageAt" xml:space="preserve"><value>Ripartizione calcolata alle {0} ({1:F1} s)</value></data>
+  <data name="Dash_CoverageRefresh" xml:space="preserve"><value>Aggiorna</value></data>
+  <data name="Dash_CoverageNameOnly" xml:space="preserve"><value>Sempre trovabili per nome.</value></data>
+  <data name="Launcher_ContentOnly" xml:space="preserve"><value>Nessun nome corrisponde · {0} documento/i con queste parole</value></data>
+  <data name="Launcher_ContentMore" xml:space="preserve"><value> · +{0} dal contenuto</value></data>
+  <data name="Launcher_ContentPrefix" xml:space="preserve"><value> (parole che iniziano così)</value></data>
+  <data name="Deep_MatchPrefix" xml:space="preserve"><value> · contenuto: parole trovate come inizio di parola</value></data>
+  <data name="Deep_MatchSome" xml:space="preserve"><value> · risultati parziali: questi documenti contengono solo alcune delle parole</value></data>
+</root>

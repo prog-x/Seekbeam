@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability privately
+    url: https://github.com/prog-x/Seekbeam/security/advisories/new
+    about: Security issues and any case where Seekbeam modified a file. Please do not use public issues for these.
+  - name: Translations
+    url: https://github.com/prog-x/Seekbeam/blob/main/docs/TRANSLATING.md
+    about: How to fix a translation or add a language.

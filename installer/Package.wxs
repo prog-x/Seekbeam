@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Seekbeam per-user MSI: no elevation, installs to %LOCALAPPDATA%\Programs\Seekbeam.
+     Index data (%LOCALAPPDATA%\Seekbeam) is preserved on uninstall; remove it with Seekbeam.exe purge-data option. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Seekbeam" Manufacturer="prog-x" Version="$(ProductVersion)" Scope="perUser" Language="1033"
+           UpgradeCode="DDC14D31-A816-4CD0-82F5-51C9DDC9EA72" Compressed="yes">
+    <SummaryInformation Description="Seekbeam — fast local search, launcher and document indexing" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Seekbeam is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Icon Id="SeekbeamIcon" SourceFile="..\src\Seekbeam.App\Assets\seekbeam.ico" />
+    <Property Id="ARPPRODUCTICON" Value="SeekbeamIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/prog-x/Seekbeam" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="Seekbeam" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(PublishDir)**" />
+    </ComponentGroup>
+
+    <Component Id="Shortcuts" Directory="ProgramMenuFolder" Guid="5E7F1C2A-9B44-4D7E-8A1B-2C3D4E5F6A71">
+      <Shortcut Id="StartMenuShortcut" Name="Seekbeam" Description="Fast search (press Ctrl twice)" Target="[INSTALLFOLDER]Seekbeam.exe" WorkingDirectory="INSTALLFOLDER" Icon="SeekbeamIcon" />
+      <Shortcut Id="StartMenuDeep" Name="Seekbeam — Advanced search" Target="[INSTALLFOLDER]Seekbeam.exe" Arguments="--deep" WorkingDirectory="INSTALLFOLDER" Icon="SeekbeamIcon" />
+      <RegistryValue Root="HKCU" Key="Software\Seekbeam" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- Start with Windows (owned by the MSI so that uninstall removes it; the app updates it from its settings). -->
+    <Component Id="Autostart" Directory="INSTALLFOLDER" Guid="1B9D7E6C-3A2F-4E1B-9C8D-7F6E5D4C3B2A">
+      <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="Seekbeam" Type="string" Value="&quot;[INSTALLFOLDER]Seekbeam.exe&quot; --background" KeyPath="yes" />
+    </Component>
+
+    <!-- Close a running Seekbeam before upgrade/uninstall. -->
+    <util:CloseApplication Id="CloseSeekbeam" Target="Seekbeam.exe" CloseMessage="yes" RebootPrompt="no" />
+
+    <CustomAction Id="LaunchSeekbeam" Directory="INSTALLFOLDER" ExeCommand="&quot;[INSTALLFOLDER]Seekbeam.exe&quot;" Return="asyncNoWait" Impersonate="yes" />
+    <InstallExecuteSequence>
+      <Custom Action="LaunchSeekbeam" After="InstallFinalize" Condition="NOT Installed AND NOT REMOVE AND UILevel &gt;= 4" />
+    </InstallExecuteSequence>
+
+    <Feature Id="Main" Title="Seekbeam" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="Shortcuts" />
+      <ComponentRef Id="Autostart" />
+    </Feature>
+  </Package>
+</Wix>

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Seekbeam</AssemblyName>
+    <RootNamespace>Seekbeam.App</RootNamespace>
+    <!-- UI strings: Localization/Strings.resx is English (neutral); fr, de, it ship as satellite assemblies. -->
+    <NeutralLanguage>en</NeutralLanguage>
+    <ApplicationIcon>Assets\seekbeam.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <!-- Low steady-state memory: compact aggressively and return memory to the OS. -->
+    <AutoreleasePoolSupport>false</AutoreleasePoolSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+    <RuntimeHostConfigurationOption Include="System.GC.RetainVM" Value="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Seekbeam.Core\Seekbeam.Core.csproj" />
+    <ProjectReference Include="..\Seekbeam.Extraction\Seekbeam.Extraction.csproj" />
+    <ProjectReference Include="..\Seekbeam.ExtractorHost\Seekbeam.ExtractorHost.csproj" ReferenceOutputAssembly="false" />
+    <Resource Include="Assets\seekbeam.ico" />
+  </ItemGroup>
+  <!-- Copy the extractor host next to Seekbeam.exe -->
+  <Target Name="CopyExtractorHost" AfterTargets="Build">
+    <ItemGroup>
+      <HostFiles Include="..\Seekbeam.ExtractorHost\bin\$(Configuration)\$(TargetFramework)\Seekbeam.ExtractorHost.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(HostFiles)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

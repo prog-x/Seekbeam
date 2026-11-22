@@ -1,0 +1,256 @@
+<Window x:Class="Seekbeam.App.Windows.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="clr-namespace:Seekbeam.App.Localization"
+        xmlns:c="clr-namespace:Seekbeam.App.Controls"
+        Title="{l:Tr Set_Title}" Width="820" Height="640" Style="{StaticResource ToolWindow}" WindowStartupLocation="CenterScreen">
+    <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="{l:Tr Set_Save}" Click="Save_Click" IsDefault="True" />
+            <Button Content="{l:Tr Set_Cancel}" Click="Cancel_Click" IsCancel="True" Margin="0" />
+        </StackPanel>
+        <TabControl x:Name="Tabs">
+            <TabItem Header="{l:Tr Tab_General}">
+                <StackPanel Margin="10">
+                    <GroupBox Header="{l:Tr Set_LanguageGroup}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_Language}" Width="170" VerticalAlignment="Center" />
+                                <ComboBox x:Name="LanguageBox" Width="240" />
+                            </StackPanel>
+                            <TextBlock Text="{l:Tr Set_LanguageNote}" Foreground="{DynamicResource SubFgBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="{l:Tr Set_Startup}">
+                        <StackPanel>
+                            <CheckBox x:Name="StartWithWindows" Content="{l:Tr Set_StartWithWindows}" />
+                            <CheckBox x:Name="ShowTray" Content="{l:Tr Set_ShowTray}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="{l:Tr Set_Hotkey}">
+                        <StackPanel>
+                            <CheckBox x:Name="DoubleCtrl" Content="{l:Tr Set_DoubleCtrl}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_CtrlKey}" Width="170" VerticalAlignment="Center" />
+                                <ComboBox x:Name="CtrlSide" Width="160">
+                                    <ComboBoxItem Content="{l:Tr Set_CtrlBoth}" /><ComboBoxItem Content="{l:Tr Set_CtrlLeft}" /><ComboBoxItem Content="{l:Tr Set_CtrlRight}" />
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_TapDelay}" Width="170" VerticalAlignment="Center" />
+                                <TextBox x:Name="TapMs" Width="80" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_AltHotkey}" Width="170" VerticalAlignment="Center" />
+                                <c:HotkeyBox x:Name="AltHotkey" Width="160" ToolTip="{l:Tr Set_HotkeyCaptureTip}" />
+                                <Button Content="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Padding="6,2" Margin="4,0,0,0" MinWidth="0"
+                                        Click="ClearAltHotkey_Click" ToolTip="{l:Tr Set_HotkeyClear}" AutomationProperties.Name="{l:Tr Set_HotkeyClear}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_DeepHotkey}" Width="170" VerticalAlignment="Center" />
+                                <c:HotkeyBox x:Name="DeepHotkey" Width="160" ToolTip="{l:Tr Set_HotkeyCaptureTip}" />
+                                <Button Content="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Padding="6,2" Margin="4,0,0,0" MinWidth="0"
+                                        Click="ClearDeepHotkey_Click" ToolTip="{l:Tr Set_HotkeyClear}" AutomationProperties.Name="{l:Tr Set_HotkeyClear}" />
+                            </StackPanel>
+                            <TextBlock x:Name="HotkeyFeedback" TextWrapping="Wrap" Margin="170,2,0,0" Foreground="{DynamicResource SubFgBrush}"
+                                       Text="{l:Tr Set_HotkeyCaptureHint}" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="{l:Tr Set_Window}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_Position}" Width="170" VerticalAlignment="Center" />
+                                <ComboBox x:Name="Position" Width="160"><ComboBoxItem Content="{l:Tr Set_PosCenter}" /><ComboBoxItem Content="{l:Tr Set_PosCursor}" /></ComboBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_MaxResults}" Width="170" VerticalAlignment="Center" />
+                                <TextBox x:Name="MaxResults" Width="80" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_Theme}" Width="170" VerticalAlignment="Center" />
+                                <ComboBox x:Name="ThemeBox" Width="160"><ComboBoxItem Content="{l:Tr Set_ThemeSystem}" /><ComboBoxItem Content="{l:Tr Set_ThemeLight}" /><ComboBoxItem Content="{l:Tr Set_ThemeDark}" /></ComboBox>
+                            </StackPanel>
+                            <CheckBox x:Name="TopmostBox" Content="{l:Tr Set_Topmost}" />
+                            <CheckBox x:Name="CloseOnFocusLoss" Content="{l:Tr Set_CloseOnFocusLoss}" />
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="{l:Tr Tab_Locations}">
+                <DockPanel Margin="10">
+                    <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}" Margin="0,0,0,8"
+                               Text="{l:Tr Set_LocationsIntro}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="300" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
+                                <Button Content="{l:Tr Set_Add}" Click="AddRoot_Click" />
+                                <Button Content="{l:Tr Set_Remove}" Click="RemoveRoot_Click" />
+                            </StackPanel>
+                            <ListBox x:Name="RootsList" DisplayMemberPath="Path" SelectionChanged="RootsList_SelectionChanged" />
+                        </DockPanel>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" x:Name="RootPanel">
+                            <CheckBox x:Name="RootEnabled" Content="{l:Tr Set_RootEnabled}" />
+                            <CheckBox x:Name="RootContent" Content="{l:Tr Set_RootContent}" />
+                            <CheckBox x:Name="RootHidden" Content="{l:Tr Set_RootHidden}" />
+                            <CheckBox x:Name="RootWatch" Content="{l:Tr Set_RootWatch}" />
+                            <CheckBox x:Name="RootLinks" Content="{l:Tr Set_RootLinks}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBlock Text="{l:Tr Set_RootDepth}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBox x:Name="RootDepth" Width="60" />
+                            </StackPanel>
+                            <TextBlock x:Name="RootDepthInfo" TextWrapping="Wrap" Foreground="#C07800" Visibility="Collapsed" Margin="0,0,0,4" />
+                            <TextBlock Text="{l:Tr Set_RootExcludes}" Margin="0,6,0,2" />
+                            <TextBox x:Name="RootExcludes" AcceptsReturn="True" Height="150" VerticalScrollBarVisibility="Auto" />
+                            <TextBlock Text="{l:Tr Set_GlobalExcludes}" Margin="0,8,0,2" />
+                            <TextBox x:Name="GlobalExcludes" AcceptsReturn="True" Height="80" VerticalScrollBarVisibility="Auto" />
+                        </StackPanel>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="{l:Tr Tab_Content}">
+                <StackPanel Margin="10">
+                    <CheckBox x:Name="ContentEnabled" Content="{l:Tr Set_ContentEnabled}" />
+                    <CheckBox x:Name="StoreText" Content="{l:Tr Set_StoreText}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_MaxFileMB}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="MaxFileMB" Width="80" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_MaxChars}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="MaxChars" Width="100" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_Timeout}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="Timeout" Width="80" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_ExcludedExt}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="ExcludedExt" Width="300" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_ExtraExt}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="ExtraExt" Width="300" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_DisabledExtractors}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="DisabledExtractors" Width="300" ToolTip="text, markup, ooxml, odf, rtf, pdf, legacy-office, zip" />
+                    </StackPanel>
+                    <GroupBox Header="{l:Tr Set_ContentFolders}" Margin="0,10,0,0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}" Margin="0,0,0,4"
+                                       Text="{l:Tr Set_ContentFoldersIntro}" />
+                            <StackPanel DockPanel.Dock="Right" Margin="6,0,0,0">
+                                <Button Content="{l:Tr Set_Add}" Click="AddContentFolder_Click" Margin="0,0,0,4" />
+                                <Button Content="{l:Tr Set_Remove}" Click="RemoveContentFolder_Click" Margin="0" />
+                            </StackPanel>
+                            <ListBox x:Name="ContentFoldersList" Height="64" />
+                        </DockPanel>
+                    </GroupBox>
+                    <GroupBox Header="{l:Tr Set_Archives}" Margin="0,10,0,0">
+                        <StackPanel>
+                            <CheckBox x:Name="ArchivesEnabled" Content="{l:Tr Set_ArchivesEnabled}" />
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="{l:Tr Set_ArchiveDepth}" Width="200" VerticalAlignment="Center" /><TextBox x:Name="ArchiveDepth" Width="60" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4"><TextBlock Text="{l:Tr Set_ArchiveEntries}" Width="200" VerticalAlignment="Center" /><TextBox x:Name="ArchiveEntries" Width="80" /></StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                    <TextBlock Text="{l:Tr Set_Ocr}" Foreground="{DynamicResource SubFgBrush}" Margin="0,8,0,0" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="{l:Tr Tab_Resources}">
+                <StackPanel Margin="10">
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_Mode}" Width="200" VerticalAlignment="Center" />
+                        <ComboBox x:Name="Mode" Width="200">
+                            <ComboBoxItem Content="{l:Tr Set_ModeAuto}" /><ComboBoxItem Content="{l:Tr Profile_Economy}" /><ComboBoxItem Content="{l:Tr Profile_Balanced}" /><ComboBoxItem Content="{l:Tr Profile_Performance}" />
+                        </ComboBox>
+                    </StackPanel>
+                    <CheckBox x:Name="PauseFullscreen" Content="{l:Tr Set_PauseFullscreen}" />
+                    <CheckBox x:Name="EconomyBattery" Content="{l:Tr Set_EconomyBattery}" />
+                    <CheckBox x:Name="PauseContentBattery" Content="{l:Tr Set_PauseContentBattery}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_IdleSec}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="IdleSec" Width="80" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_TimeWindows}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="Windows" Width="200" ToolTip="{l:Tr Set_TimeWindowsTip}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_HostMem}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="HostMem" Width="80" />
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="{l:Tr Tab_SearchPrivacy}">
+                <StackPanel Margin="10">
+                    <CheckBox x:Name="Fuzzy" Content="{l:Tr Set_Fuzzy}" />
+                    <CheckBox x:Name="MatchPath" Content="{l:Tr Set_MatchPath}" />
+                    <CheckBox x:Name="SearchHidden" Content="{l:Tr Set_SearchHidden}" />
+                    <CheckBox x:Name="SearchSystem" Content="{l:Tr Set_SearchSystem}" />
+                    <CheckBox x:Name="AppsStart" Content="{l:Tr Set_AppsStart}" />
+                    <CheckBox x:Name="AppsDesktop" Content="{l:Tr Set_AppsDesktop}" />
+                    <CheckBox x:Name="AppsStore" Content="{l:Tr Set_AppsStore}" />
+                    <TextBlock Text="{l:Tr Set_ExeFolders}" Margin="0,6,0,2" />
+                    <TextBox x:Name="ExeFolders" AcceptsReturn="True" Height="50" />
+                    <GroupBox Header="{l:Tr Set_Privacy}" Margin="0,10,0,0">
+                        <StackPanel>
+                            <CheckBox x:Name="Learning" Content="{l:Tr Set_Learning}" />
+                            <CheckBox x:Name="History" Content="{l:Tr Set_History}" />
+                            <CheckBox x:Name="Discovery" Content="{l:Tr Set_Discovery}" />
+                            <CheckBox x:Name="RedactPaths" Content="{l:Tr Set_RedactPaths}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <Button Content="{l:Tr Set_ClearHistory}" Click="ClearHistory_Click" />
+                                <Button Content="{l:Tr Set_ResetLearning}" Click="ResetLearning_Click" />
+                                <Button Content="{l:Tr Set_PurgeLogs}" Click="PurgeLogs_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="{l:Tr Tab_Watching}">
+                <StackPanel Margin="10">
+                    <CheckBox x:Name="WatchEnabled" Content="{l:Tr Set_WatchEnabled}" />
+                    <CheckBox x:Name="ReconcileStartup" Content="{l:Tr Set_ReconcileStartup}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                        <TextBlock Text="{l:Tr Set_ReconcileHours}" Width="260" VerticalAlignment="Center" />
+                        <TextBox x:Name="ReconcileHours" Width="80" />
+                    </StackPanel>
+                    <TextBlock Margin="0,14,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}">
+                        <Run Text="{l:Tr Set_DataDir}" /><Run x:Name="DataDir" />
+                    </TextBlock>
+                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}"
+                               Text="{l:Tr Set_DataNote}" />
+                </StackPanel>
+            </TabItem>
+            <TabItem x:Name="AboutTab" Header="{l:Tr Tab_About}">
+                <StackPanel Margin="16,14">
+                    <StackPanel Orientation="Horizontal">
+                        <Image x:Name="AboutIcon" Width="48" Height="48" Margin="0,0,14,0" VerticalAlignment="Center" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Seekbeam" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock x:Name="AboutVersion" Foreground="{DynamicResource SubFgBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="{l:Tr About_Tagline}" TextWrapping="Wrap" Margin="0,14,0,0" />
+                    <TextBlock Margin="0,14,0,0">
+                        <Hyperlink x:Name="ProjectLink" Click="ProjectLink_Click"><Run x:Name="ProjectUrl" /></Hyperlink>
+                    </TextBlock>
+                    <TextBlock x:Name="AboutCopyright" Margin="0,14,0,0" Foreground="{DynamicResource SubFgBrush}" />
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}">
+                        <Run Text="{l:Tr About_License}" />
+                        <Hyperlink Click="LicenseLink_Click"><Run Text="{l:Tr About_LicenseLink}" /></Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}">
+                        <Run Text="{l:Tr About_Immutability}" />
+                        <Hyperlink Click="PolicyLink_Click"><Run Text="{l:Tr About_ImmutabilityLink}" /></Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}">
+                        <Hyperlink Click="NoticesLink_Click"><Run Text="{l:Tr About_ThirdParty}" /></Hyperlink>
+                    </TextBlock>
+                    <Button Content="{l:Tr About_CopyInfo}" Click="CopyInfo_Click" HorizontalAlignment="Left" Margin="0,18,0,0" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

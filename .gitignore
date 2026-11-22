@@ -1,0 +1,17 @@
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+TestResults/
+/datasets/
+*.db
+*.db-wal
+*.db-shm
+
+# Private local files (agent working instructions, original launch prompt, original CLAUDE.md)
+CLAUDE.local.md
+/PROMPT_LAUNCH.md
+/docs/project/CLAUDE.original.md
+# Local test documents (may contain personal data)
+/problem/

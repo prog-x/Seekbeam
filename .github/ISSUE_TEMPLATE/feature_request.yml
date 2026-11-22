@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an improvement (English or French).
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check [ROADMAP.md](../blob/main/ROADMAP.md) first. Seekbeam never modifies indexed files, so features that rename, move, delete or edit files are out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or tools that do it today (Listary, Everything, Recoll…)

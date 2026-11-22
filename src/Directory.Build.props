@@ -1,0 +1,12 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <!-- File immutability (docs/FILE_IMMUTABILITY_POLICY.md): file-system write APIs are banned in shipped code.
+       Only Seekbeam.Core/Storage and Seekbeam.Core/SourceAccess may suppress RS0030, with a justification. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);RS0030;RS0031;RS0035</WarningsAsErrors>
+  </PropertyGroup>
+</Project>
