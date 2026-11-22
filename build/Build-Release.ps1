@@ -39,8 +39,10 @@ New-Item -ItemType Directory -Force $portable | Out-Null
 Copy-Item "$pub\*" $portable -Recurse
 Set-Content "$portable\portable.txt" "Seekbeam portable: data is stored in the Data folder next to Seekbeam.exe."
 Compress-Archive -Path "$portable\*" -DestinationPath "$dist\Seekbeam-$version-$($Runtime -replace '^win-','')-portable.zip" -Force
-# Checksums published next to the files (sha256sum format).
-Get-ChildItem $dist -File | Where-Object Name -ne "SHA256SUMS.txt" | ForEach-Object {
+# Checksums published next to the files (sha256sum format). LF line endings, so that `sha256sum -c SHA256SUMS.txt`
+# works on Linux, WSL and Git Bash as well (Set-Content would write CRLF, which sha256sum reads as part of the name).
+$sums = Get-ChildItem $dist -File | Where-Object Name -ne "SHA256SUMS.txt" | ForEach-Object {
   "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
-} | Set-Content (Join-Path $dist "SHA256SUMS.txt") -Encoding ascii
+}
+[IO.File]::WriteAllText((Join-Path $dist "SHA256SUMS.txt"), (($sums -join "`n") + "`n"), [Text.Encoding]::ASCII)
 Get-ChildItem $dist | Select-Object Name, @{n="MB";e={[math]::Round($_.Length/1MB,1)}}
