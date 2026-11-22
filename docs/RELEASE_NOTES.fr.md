@@ -4,7 +4,13 @@
 
 ## Non publié
 
-### Changements
+Rien pour l'instant.
+
+## 1.0.0 — 2026-11-22
+
+Première version publique. Les fonctionnalités sont décrites plus bas ; cette première partie liste ce qui a changé depuis la version interne du 2026-11-21.
+
+### Changements depuis la version interne du 2026-11-21
 - **État d'indexation visible dans le launcher.** Chaque fichier affiché porte une pastille indiquant l'état de son contenu : ● indexé, ◌ en attente, ○ non indexé (la raison s'affiche au survol), ⚠ échec. Elle est chargée après l'affichage des résultats, sans ralentir la recherche. Pendant l'indexation des noms, un bandeau prévient que certains fichiers ne sont peut-être pas encore trouvables.
 - **Le launcher cherche aussi dans le contenu.** Jusqu'à 4 documents dont le texte contient les mots tapés s'ajoutent sous les résultats par nom, avec l'extrait correspondant. Ils sont calculés après l'affichage des noms et abandonnés si la frappe continue. Auparavant, le launcher ne cherchait que dans les noms et les chemins : un PDF dont seul le texte contenait les mots tapés donnait 0 résultat.
 - **La recherche avancée ne renvoie plus 0 résultat quand un mot manque ou diffère.** Si aucun document ne contient exactement tous les mots, elle essaie chaque mot comme début de mot (`code` → `codes`), puis les documents contenant une partie des mots, et la ligne d'état le signale. Les exclusions (`-mot`) et les phrases entre guillemets restent strictes.
@@ -28,10 +34,6 @@
 - **Licence** : MIT (`LICENSE`), avec `THIRD-PARTY-NOTICES.md` pour les composants redistribués ; les deux sont inclus dans le MSI et le zip portable.
 - **Installeur** : les noms et descriptions des raccourcis sont désormais en anglais (« Seekbeam — Advanced search »).
 - **Correctif : arrêt lent.** Les workers d'indexation du contenu partageaient un même événement de réveil : à la fermeture, tous sauf un dormaient jusqu'à 15 s, et Seekbeam mettait environ 11 s à quitter. Les attentes se terminent maintenant aussi sur annulation : la fermeture prend environ 0,2 s.
-
-## 1.0.0 — 2026-11-21
-
-Première version.
 
 ### Fonctionnalités
 - **Launcher** :

@@ -4,7 +4,13 @@
 
 ## Unreleased
 
-### Changes
+Nothing yet.
+
+## 1.0.0 — 2026-11-22
+
+First public release. Its features are described further down; this first part lists what changed since the internal build of 2026-11-21.
+
+### Changes since the internal build of 2026-11-21
 - **Indexing state visible in the launcher.** Each file shown carries a dot giving the state of its content: ● indexed, ◌ pending, ○ not indexed (the reason appears on hover), ⚠ failed. It is loaded after the results are displayed, so search is not slowed down. While names are being indexed, a banner warns that some files may not be found yet.
 - **The launcher also searches document contents.** Up to 4 documents whose text contains the typed words are added below the name results, with the matching passage. They are computed after the names are displayed and dropped if typing continues. Previously the launcher searched names and paths only: a PDF whose text alone contained the typed words gave 0 results.
 - **The advanced search no longer returns 0 results when a word is missing or differs.** When no document contains every word exactly, it tries every word as a word beginning (`code` → `codes`), then documents containing some of the words, and the status line says so. Exclusions (`-word`) and quoted phrases stay strict.
@@ -28,10 +34,6 @@
 - **License**: MIT (`LICENSE`), with `THIRD-PARTY-NOTICES.md` for the redistributed components; both are included in the MSI and the portable zip.
 - **Installer**: shortcut names and descriptions are now in English ("Seekbeam — Advanced search").
 - **Fix: slow shutdown.** Content indexing workers shared one wake-up event, so on exit all but one slept up to 15 s and Seekbeam took about 11 s to quit. Waits now also end on cancellation: exit takes about 0.2 s.
-
-## 1.0.0 — 2026-11-21
-
-First release.
 
 ### Features
 - **Launcher**:
