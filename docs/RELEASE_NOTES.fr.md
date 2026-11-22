@@ -4,7 +4,7 @@
 
 ## Non publié
 
-Rien pour l'instant.
+- **Correctif : les résultats par le contenu pouvaient rester hors de vue dans le launcher.** Ils s'ajoutaient sous les résultats par nom : quand les noms remplissaient la liste, ils se retrouvaient après la dernière ligne, voire au-delà de la hauteur visible. Ils occupent désormais les lignes libres de la liste, en gardent les deux dernières lignes quand les noms la remplissent déjà (liste de 8 par défaut) et passent avant les correspondances approximatives de nom (≈). La liste ne dépasse jamais la taille configurée. Les erreurs d'affichage des résultats du launcher sont désormais journalisées au lieu d'être perdues silencieusement.
 
 ## 1.0.0 — 2026-11-22
 

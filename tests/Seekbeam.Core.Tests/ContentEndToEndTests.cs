@@ -182,6 +182,33 @@ public sealed class ContentEndToEndTests : IDisposable
         Assert.Null(e.SearchContentForLauncher("cl", 4, default));                       // too short
     }
 
+    /// <summary>
+    /// Regression ("Claude Code CHDEV": three words found only in a PV's text while name matches fill the list): the
+    /// content result must take a visible row of the launcher, not be appended below the name results.
+    /// </summary>
+    [Fact]
+    public void ContentResultKeepsAVisibleRowWhenNamesFillTheLauncherList()
+    {
+        string src = Path.Combine(_base, "src"), dev = Path.Combine(src, "dev");
+        Directory.CreateDirectory(dev);
+        for (int i = 0; i < 12; i++) File.WriteAllText(Path.Combine(dev, $"claude-code-chdev-{i}.md"), "rien");
+        File.WriteAllText(Path.Combine(src, "Séance comité 20261111 - PV détaillé_v2.txt"),
+            "Marc travaille avec Claude. Consensus sur le code généré. Comment continuer CHDev avec l'IA.");
+        var e = Start(src);
+        Assert.True(WaitFor(() => e.ContentDb.Counts().Docs >= 13 && !e.ContentIndexer!.Stats().Busy), "content indexed");
+
+        const int max = 8;
+        var names = e.Search.Search(new Search.SearchRequest { Query = "Claude Code CHDEV", MaxResults = max, IncludeApps = false }, default).Results;
+        Assert.Equal(max, names.Count); // names alone fill the list
+        Assert.DoesNotContain(names, r => r.Name.StartsWith("Séance"));
+        int shown = names.Count(r => r.EntryId > 0);
+        var content = e.SearchContentForLauncher("Claude Code CHDEV", Search.LauncherMerge.ContentRows(names.Count, max) + shown, default)!;
+        var merged = Search.LauncherMerge.Merge(names, content.Results, max, out int added);
+        Assert.Equal(1, added);
+        Assert.Equal(max, merged.Count);
+        Assert.Contains(merged, r => r.Name.StartsWith("Séance") && r.Snippet != null);
+    }
+
     /// <summary>A set with one file per state/reason; failure, encryption and "still queued" are injected after the real extraction.</summary>
     private SeekbeamEngine StartCoverageSet()
     {

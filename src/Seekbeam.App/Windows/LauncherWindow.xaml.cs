@@ -123,50 +123,65 @@ public partial class LauncherWindow : Window
             catch (OperationCanceledException) { return null; }
         }).ContinueWith(t =>
         {
-            if (gen != _generation || t.Result == null) return; // stale: a newer query was typed
+            if (gen != _generation) return; // stale: a newer query was typed
+            if (t.Exception is { } ex) { Core.Diagnostics.Log.Warn("Launcher", "Name search: " + ex.GetBaseException().Message); return; }
+            if (t.Result == null) return;
             Show(t.Result);
-            SearchContent(query, gen, cts.Token);
+            SearchContent(query, gen, max, cts.Token);
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
-    private const int ContentResultCount = 4;
-
     /// <summary>
-    /// Documents whose content contains the words, appended under the name results. Runs after the name results are
-    /// on screen and after a short pause in typing, so it never delays them; dropped if a newer query was typed.
+    /// Documents whose content contains the words, placed among the name results by <see cref="LauncherMerge"/> (free
+    /// rows, a reserved share of a full list, above approximate name matches). Runs after the name results are on
+    /// screen and after a short pause in typing, so it never delays them; dropped if a newer query was typed.
     /// </summary>
-    private void SearchContent(string query, int gen, CancellationToken ct)
+    private void SearchContent(string query, int gen, int max, CancellationToken ct)
     {
-        var shown = _items.Select(i => i.Result.EntryId).Where(id => id > 0).ToHashSet();
-        int nameCount = _items.Count;
+        var names = _items.Select(i => i.Result).ToList();
+        int shownFiles = names.Count(r => r.EntryId > 0);
+        int want = LauncherMerge.ContentRows(names.Count, max);
+        if (want == 0) return;
         Task.Run(async () =>
         {
             try
             {
                 await Task.Delay(150, ct); // typing pause
                 if (gen != Volatile.Read(ref _generation)) return null;
-                return _engine.SearchContentForLauncher(query, ContentResultCount + shown.Count, ct);
+                return _engine.SearchContentForLauncher(query, want + shownFiles, ct);
             }
             catch (OperationCanceledException) { return null; }
             catch (Exception ex) { Core.Diagnostics.Log.Warn("Launcher", "Content search: " + ex.Message); return null; }
         }).ContinueWith(t =>
         {
             if (gen != _generation || t.Result is not { } set) return;
-            var extra = set.Results.Where(r => !shown.Contains(r.EntryId)).Take(ContentResultCount).ToList();
-            if (extra.Count == 0) return;
-            foreach (var r in extra)
-            {
-                // Found in the content index: its content is indexed by definition.
-                var item = new ResultItem(r) { Icon = _icons.TryGetCached(r), Content = new(Core.Content.ContentState.Indexed) };
-                _items.Add(item);
-                if (item.Icon == null) _icons.GetAsync(r).ContinueWith(x => item.Icon = x.Result, TaskScheduler.FromCurrentSynchronizationContext());
-            }
-            if (Results.SelectedIndex < 0) Results.SelectedIndex = 0;
-            string partial = set.ContentMatch == ContentMatchMode.AllWordsAsPrefixes ? L.T("Launcher_ContentPrefix") : "";
-            Status.Text = nameCount == 0
-                ? L.F("Launcher_ContentOnly", extra.Count) + partial
-                : Status.Text + L.F("Launcher_ContentMore", extra.Count) + partial;
+            try { ShowContent(names, set, max); }
+            catch (Exception ex) { Core.Diagnostics.Log.Warn("Launcher", "Content results: " + ex.Message); }
         }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    private void ShowContent(List<SearchResult> names, SearchResultSet set, int max)
+    {
+        var merged = LauncherMerge.Merge(names, set.Results, max, out int added);
+        if (added == 0) return;
+        var byResult = _items.ToDictionary(i => i.Result); // SearchResult has reference equality
+        var selected = Selected;
+        bool atTop = Results.SelectedIndex <= 0;
+        _items.Clear();
+        foreach (var r in merged)
+        {
+            if (byResult.TryGetValue(r, out var existing)) { _items.Add(existing); continue; }
+            // Found in the content index: its content is indexed by definition.
+            var item = new ResultItem(r) { Icon = _icons.TryGetCached(r), Content = new(Core.Content.ContentState.Indexed) };
+            _items.Add(item);
+            if (item.Icon == null) _icons.GetAsync(r).ContinueWith(x => item.Icon = x.Result, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+        // Keep the user's selection if they already moved in the list; otherwise the first row.
+        Results.SelectedIndex = !atTop && selected != null && _items.Contains(selected) ? _items.IndexOf(selected) : 0;
+        string partial = set.ContentMatch == ContentMatchMode.AllWordsAsPrefixes ? L.T("Launcher_ContentPrefix") : "";
+        Status.Text = names.Count == 0
+            ? L.F("Launcher_ContentOnly", added) + partial
+            : Status.Text + L.F("Launcher_ContentMore", added) + partial;
     }
 
     private void Show(SearchResultSet set)
