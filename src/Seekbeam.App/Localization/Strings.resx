@@ -346,4 +346,23 @@ Index the content of Downloads anyway?</value></data>
   <data name="Launcher_ContentPrefix" xml:space="preserve"><value> (words starting this way)</value></data>
   <data name="Deep_MatchPrefix" xml:space="preserve"><value> · content: words matched as word beginnings</value></data>
   <data name="Deep_MatchSome" xml:space="preserve"><value> · partial results: these documents contain only some of the words</value></data>
+  <data name="Tab_Apps" xml:space="preserve"><value>Applications</value></data>
+  <data name="Kind_Command" xml:space="preserve"><value>Command</value></data>
+  <data name="Kind_Alias" xml:space="preserve"><value>Alias</value></data>
+  <data name="Kind_AliasAdmin" xml:space="preserve"><value>Alias · administrator</value></data>
+  <data name="Set_AppsRunCommands" xml:space="preserve"><value>Run commands (Win+R): PATH programs, App Paths, .msc and .cpl</value></data>
+  <data name="Set_AppsRunCommandsTip" xml:space="preserve"><value>Type a command as in Win+R (mstsc, regedit, services.msc), optionally followed by arguments (mstsc /v:server). Commands appear for their exact name or a prefix of at least 3 letters.</value></data>
+  <data name="Set_Aliases" xml:space="preserve"><value>Aliases</value></data>
+  <data name="Set_AliasesHelp" xml:space="preserve"><value>A keyword typed in the launcher starts a program, file, folder or address. Text typed after the keyword is added to the arguments. Environment variables such as %SystemRoot% are allowed.</value></data>
+  <data name="Set_AliasKeyword" xml:space="preserve"><value>Keyword (no spaces):</value></data>
+  <data name="Set_AliasTarget" xml:space="preserve"><value>Target:</value></data>
+  <data name="Set_AliasTargetTip" xml:space="preserve"><value>Program, file, folder or address (ms-settings:display, https://…)</value></data>
+  <data name="Set_AliasBrowse" xml:space="preserve"><value>Browse…</value></data>
+  <data name="Set_AliasArguments" xml:space="preserve"><value>Arguments:</value></data>
+  <data name="Set_AliasWorkDir" xml:space="preserve"><value>Working folder (optional):</value></data>
+  <data name="Set_AliasAdmin" xml:space="preserve"><value>Run as administrator</value></data>
+  <data name="Set_AliasEmptyKeyword" xml:space="preserve"><value>An alias has no keyword.</value></data>
+  <data name="Set_AliasSpace" xml:space="preserve"><value>The keyword &quot;{0}&quot; contains a space: text after a space is passed as arguments.</value></data>
+  <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>The alias &quot;{0}&quot; has no target.</value></data>
+  <data name="Set_AliasDuplicate" xml:space="preserve"><value>The keyword &quot;{0}&quot; is used by several aliases.</value></data>
 </root>

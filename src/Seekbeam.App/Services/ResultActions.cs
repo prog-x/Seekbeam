@@ -21,7 +21,7 @@ public static class ResultActions
         bool isFile = r.Kind == ResultKind.File;
         bool isApp = r.Kind == ResultKind.App;
         Add(isApp ? L.T("Action_Launch") : L.T("Action_Open"), L.T("Key_Enter"), () => Open(r, engine), tip: L.T("Action_OpenTip"));
-        Add(L.T("Action_OpenFolder"), L.T("Key_CtrlEnter"), () => ShellActions.OpenContainingFolder(r), !(isApp && r.App?.AppUserModelId != null));
+        Add(L.T("Action_OpenFolder"), L.T("Key_CtrlEnter"), () => ShellActions.OpenContainingFolder(r), ShellActions.HasLocation(r));
         if (isApp || r.FullPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || r.FullPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
             || r.FullPath.EndsWith(".bat", StringComparison.OrdinalIgnoreCase) || r.FullPath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase))
             Add(L.T("Action_RunAsAdmin"), L.T("Key_ShiftEnter"), () => { ShellActions.RunAsAdministrator(r); engine.RecordOpen(r); });
@@ -31,7 +31,7 @@ public static class ResultActions
         Add(L.T("Action_CopyName"), L.T("Key_CtrlShiftC"), () => ShellActions.CopyText(r.Name));
         if (isFile) Add(L.T("Action_CopyContent"), "", () => { var t = r.EntryId > 0 ? engine.ContentDb.GetText(r.EntryId) : null; if (t != null) ShellActions.CopyText(t); },
             r.EntryId > 0 && engine.ContentDb.GetInfo(r.EntryId) != null);
-        Add(L.T("Action_Properties"), L.T("Key_AltEnter"), () => ShellActions.Properties(r), !(isApp && r.App?.AppUserModelId != null));
+        Add(L.T("Action_Properties"), L.T("Key_AltEnter"), () => ShellActions.Properties(r), ShellActions.HasLocation(r));
         menu.Items.Add(new Separator());
         string key = isApp ? r.App!.Key : r.FullPath;
         bool fav = engine.Usage.IsFavorite(key);

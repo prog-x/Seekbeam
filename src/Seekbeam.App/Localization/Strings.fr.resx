@@ -346,4 +346,23 @@ Indexer quand même le contenu de Téléchargements ?</value></data>
   <data name="Launcher_ContentPrefix" xml:space="preserve"><value> (mots commençant ainsi)</value></data>
   <data name="Deep_MatchPrefix" xml:space="preserve"><value> · contenu : mots trouvés comme débuts de mots</value></data>
   <data name="Deep_MatchSome" xml:space="preserve"><value> · résultats partiels : ces documents ne contiennent qu&apos;une partie des mots</value></data>
+  <data name="Tab_Apps" xml:space="preserve"><value>Applications</value></data>
+  <data name="Kind_Command" xml:space="preserve"><value>Commande</value></data>
+  <data name="Kind_Alias" xml:space="preserve"><value>Alias</value></data>
+  <data name="Kind_AliasAdmin" xml:space="preserve"><value>Alias · administrateur</value></data>
+  <data name="Set_AppsRunCommands" xml:space="preserve"><value>Commandes Exécuter (Win+R) : programmes du PATH, App Paths, .msc et .cpl</value></data>
+  <data name="Set_AppsRunCommandsTip" xml:space="preserve"><value>Tapez une commande comme dans Win+R (mstsc, regedit, services.msc), éventuellement suivie d&apos;arguments (mstsc /v:serveur). Les commandes apparaissent pour leur nom exact ou un préfixe d&apos;au moins 3 lettres.</value></data>
+  <data name="Set_Aliases" xml:space="preserve"><value>Alias</value></data>
+  <data name="Set_AliasesHelp" xml:space="preserve"><value>Un mot-clé tapé dans le launcher lance un programme, un fichier, un dossier ou une adresse. Le texte tapé après le mot-clé est ajouté aux arguments. Les variables d&apos;environnement comme %SystemRoot% sont acceptées.</value></data>
+  <data name="Set_AliasKeyword" xml:space="preserve"><value>Mot-clé (sans espace) :</value></data>
+  <data name="Set_AliasTarget" xml:space="preserve"><value>Cible :</value></data>
+  <data name="Set_AliasTargetTip" xml:space="preserve"><value>Programme, fichier, dossier ou adresse (ms-settings:display, https://…)</value></data>
+  <data name="Set_AliasBrowse" xml:space="preserve"><value>Parcourir…</value></data>
+  <data name="Set_AliasArguments" xml:space="preserve"><value>Arguments :</value></data>
+  <data name="Set_AliasWorkDir" xml:space="preserve"><value>Dossier de travail (facultatif) :</value></data>
+  <data name="Set_AliasAdmin" xml:space="preserve"><value>Exécuter en tant qu&apos;administrateur</value></data>
+  <data name="Set_AliasEmptyKeyword" xml:space="preserve"><value>Un alias n&apos;a pas de mot-clé.</value></data>
+  <data name="Set_AliasSpace" xml:space="preserve"><value>Le mot-clé « {0} » contient une espace : le texte qui suit une espace est passé en arguments.</value></data>
+  <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>L&apos;alias « {0} » n&apos;a pas de cible.</value></data>
+  <data name="Set_AliasDuplicate" xml:space="preserve"><value>Le mot-clé « {0} » est utilisé par plusieurs alias.</value></data>
 </root>

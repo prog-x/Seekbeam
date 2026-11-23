@@ -25,7 +25,7 @@ public sealed class ContentExclusionTests : IDisposable
         var store = new ConfigStore(storage);
         Assert.Contains(store.Current.Content.ExcludedFolders, KnownFolders.IsDownloads);
         string saved = storage.ReadAllText("config.json")!;
-        Assert.Contains("\"SchemaVersion\": 2", saved);
+        Assert.Contains($"\"SchemaVersion\": {SeekbeamConfig.CurrentSchemaVersion}", saved);
         Assert.Contains("ExcludedFolders", saved);
 
         // A user who re-allowed Downloads after the migration keeps that choice.

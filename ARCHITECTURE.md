@@ -55,7 +55,7 @@ A single resident process (UI + engine) and one child extraction process. No Win
 | `Discovery` | `OpportunisticDiscovery`, `RecentItemsMonitor` | discovery through "Recent Items" and files opened from Seekbeam |
 | `Content` | `ContentDb`, `ContentIndexer`, `ContentSearch`, `Snippets` | FTS5, content queue, snippets |
 | `Extraction` | `IContentExtractor` + extractors, `ExtractorClient`, `ExtractorProtocol` | formats, limits, isolation |
-| `Apps` | `AppIndex`, `LnkParser`, `AppsFolderEnumerator` | Start menu, desktop, UWP/MSIX, configured .exe files |
+| `Apps` | `AppIndex`, `LnkParser`, `AppsFolderEnumerator`, `RunCommands` | Start menu, desktop, UWP/MSIX, configured .exe files, Win+R commands, user aliases |
 | `Resources` | `ResourceManager`, `SystemProbe`, `Throttle` | modes, adaptation, pause, throughput |
 | `Diagnostics` | `Log`, `Stats`, `ErrorJournal` | rotating local logs, counters, bounded error journal |
 
@@ -214,6 +214,7 @@ Auto mode signals: system CPU (`GetSystemTimes`), memory (`GlobalMemoryStatusEx`
 - **Window**: borderless WPF, DWM rounded corners, pre-created and hidden at startup (shown in < 50 ms), positioned at the center of the active screen or near the cursor.
 - **Actions**: `ShellExecuteEx` (open, runas, openas, properties), `SHOpenFolderAndSelectItems`, clipboard. No action modifies a file.
 - **Applications**: Start menu and desktop (`.lnk` files parsed by our parser), `shell:AppsFolder` (IShellItem, UWP/MSIX AUMID), `.exe` files from configured folders.
+- **Run commands and aliases** (TD-19): files of the PATH folders (.com/.exe/.bat/.cmd/.msc/.cpl, not recursive, PATH read from the registry) and App Paths registrations, rescanned every 15 minutes (≈ 900 entries, 10–30 ms); user aliases from the configuration. Run commands match only on their exact name or a prefix of at least 3 letters. "command arguments" offers the command with those arguments.
 - **Tray**: `NotifyIcon` (menu: search, advanced search, dashboard, pause, settings, quit).
 - **Auto start**: `HKCU\…\Run`. Single instance: named mutex + "show" event.
 

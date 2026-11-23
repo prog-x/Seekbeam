@@ -57,12 +57,28 @@
 | | ContentTimeWindows | [] | e.g. `["22:00-07:00"]` |
 | Apps | StartMenu, Desktop, PackagedApps | true | application sources |
 | | ExecutableFolders | [] | extra executable folders |
+| | RunCommands | true | Win+R commands: PATH folders, App Paths, .msc, .cpl |
+| | Aliases | `hosts` | user keywords (see below) |
 | Privacy | QueryHistory, Learning | true | local history and learning |
 | Watch | Enabled, ReconcileAtStartup | true | watching and reconciliation at startup |
 | | ReconcileIntervalHours | 24 | periodic reconciliation |
 | Discovery | Enabled, WatchRecentItems | true | opportunistic discovery (Recent Items) |
 | | MaxDirectoriesPerHour | 2000 | budget |
 | Logging | Level, RedactPaths, MaxFiles | Info, false, 5 | rotating local logs (5 × 5 MB) |
+
+### Aliases
+Each alias has a `Keyword` (no spaces, unique), a `Target` (program, file, folder or URI), and optional `Arguments`, `WorkingDirectory` and `RunAsAdmin`. Environment variables are expanded at launch. Invalid entries (empty keyword or target, keyword with a space, duplicate keyword) are removed when the configuration is loaded, and a warning is logged.
+
+```json
+"Aliases": [
+  { "Keyword": "hosts", "Target": "%SystemRoot%\\System32\\notepad.exe",
+    "Arguments": "%SystemRoot%\\System32\\drivers\\etc\\hosts", "WorkingDirectory": "", "RunAsAdmin": true },
+  { "Keyword": "rdp-lab", "Target": "mstsc.exe", "Arguments": "/v:lab01", "WorkingDirectory": "", "RunAsAdmin": false },
+  { "Keyword": "display", "Target": "ms-settings:display", "Arguments": "", "WorkingDirectory": "", "RunAsAdmin": false }
+]
+```
+
+Schema 3 adds the `hosts` alias once to existing configurations; if you delete it, it does not come back.
 
 ## Resource profiles
 | Mode | Names | Content | Host CPU (kernel cap) | Host RAM |

@@ -50,12 +50,28 @@ Fichier : `%LOCALAPPDATA%\Seekbeam\config.json` (ou `Data\config.json` en portab
 | | ContentTimeWindows | [] | ex. `["22:00-07:00"]` |
 | Apps | StartMenu, Desktop, PackagedApps | true | sources d'applications |
 | | ExecutableFolders | [] | dossiers d'exécutables supplémentaires |
+| | RunCommands | true | commandes Win+R : dossiers du PATH, App Paths, .msc, .cpl |
+| | Aliases | `hosts` | mots-clés de l'utilisateur (voir ci-dessous) |
 | Privacy | QueryHistory, Learning | true | historique et apprentissage locaux |
 | Watch | Enabled, ReconcileAtStartup | true | surveillance et réconciliation au démarrage |
 | | ReconcileIntervalHours | 24 | réconciliation périodique |
 | Discovery | Enabled, WatchRecentItems | true | découverte opportuniste (Éléments récents) |
 | | MaxDirectoriesPerHour | 2000 | budget |
 | Logging | Level, RedactPaths, MaxFiles | Info, false, 5 | journaux locaux tournants (5 × 5 Mo) |
+
+### Alias
+Chaque alias a un `Keyword` (mot-clé sans espace, unique), une `Target` (programme, fichier, dossier ou URI), et en option des `Arguments`, un `WorkingDirectory` et `RunAsAdmin`. Les variables d'environnement sont développées au lancement. Les entrées invalides (mot-clé ou cible vide, mot-clé contenant une espace, mot-clé en double) sont retirées au chargement de la configuration, avec un avertissement dans le journal.
+
+```json
+"Aliases": [
+  { "Keyword": "hosts", "Target": "%SystemRoot%\\System32\\notepad.exe",
+    "Arguments": "%SystemRoot%\\System32\\drivers\\etc\\hosts", "WorkingDirectory": "", "RunAsAdmin": true },
+  { "Keyword": "rdp-labo", "Target": "mstsc.exe", "Arguments": "/v:labo01", "WorkingDirectory": "", "RunAsAdmin": false },
+  { "Keyword": "affichage", "Target": "ms-settings:display", "Arguments": "", "WorkingDirectory": "", "RunAsAdmin": false }
+]
+```
+
+Le schéma 3 ajoute une fois l'alias `hosts` aux configurations existantes ; si vous le supprimez, il ne revient pas.
 
 ## Profils de ressources
 | Mode | Noms | Contenu | CPU de l'hôte (plafond noyau) | RAM de l'hôte |

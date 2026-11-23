@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- **New: Run commands and aliases.** The launcher understands what `Win+R` understands: programs in the PATH (`mstsc`, `regedit`), App Paths registrations (`excel`), consoles (`services.msc`, or just `services`) and Control Panel applets (`appwiz.cpl`), optionally followed by arguments (`mstsc /v:server`). To keep results clean, commands appear only for their exact name or a prefix of at least 3 letters. **Aliases** (Settings → new **Applications** tab) map your own keywords to a program, file, folder or address, with arguments and optional administrator rights. A `hosts` alias is included: it opens the hosts file in Notepad as administrator. Configuration schema 3 (`Apps.RunCommands`, `Apps.Aliases`).
+
 - **Fix: content results in the launcher could stay out of sight.** They were appended below the name results, so when names filled the list they ended up under the last row, or past the list's visible height. They now fill the free rows of the list, keep its last two rows when names already fill it (default list of 8), and come before approximate name matches (≈). The list never grows past its configured size. Errors in the launcher's result display are now logged instead of being silently lost.
 
 ## 1.0.0 — 2026-11-22

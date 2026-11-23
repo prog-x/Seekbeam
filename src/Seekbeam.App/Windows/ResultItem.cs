@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Media;
 using Seekbeam.App.Localization;
+using Seekbeam.Core.Apps;
 using Seekbeam.Core.Content;
 using Seekbeam.Core.Indexing;
 using Seekbeam.Core.Search;
@@ -23,13 +24,22 @@ public sealed class ResultItem : INotifyPropertyChanged
 
     public string SubText => Result.Kind switch
     {
+        ResultKind.App when Result.App?.Source == AppSource.Alias =>
+            Result.App.Target + (AppEntry.JoinArguments(Result.App.LaunchArguments, Result.Arguments) is { } a ? " " + a : ""),
         ResultKind.App => Result.App?.Target is { Length: > 0 } t && !t.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) ? t : L.T("Kind_Application"),
         _ => Result.Directory ?? Result.FullPath,
     };
 
     public string Detail => Result.Kind switch
     {
-        ResultKind.App => Result.App?.AppUserModelId != null ? L.T("Kind_StoreApp") : L.T("Kind_Application"),
+        ResultKind.App => Result.App switch
+        {
+            { AppUserModelId: not null } => L.T("Kind_StoreApp"),
+            { Source: AppSource.RunCommand } => L.T("Kind_Command"),
+            { Source: AppSource.Alias, RunAsAdmin: true } => L.T("Kind_AliasAdmin"),
+            { Source: AppSource.Alias } => L.T("Kind_Alias"),
+            _ => L.T("Kind_Application"),
+        },
         ResultKind.Folder => L.T("Kind_Folder"),
         _ => FormatSize(Result.Size) + (Result.ModifiedUtc > DateTime.MinValue ? " · " + Result.ModifiedUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture) : ""),
     };

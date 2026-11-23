@@ -347,4 +347,23 @@ Den Inhalt von „Downloads“ trotzdem indizieren?</value></data>
   <data name="Launcher_ContentPrefix" xml:space="preserve"><value> (Wörter, die so beginnen)</value></data>
   <data name="Deep_MatchPrefix" xml:space="preserve"><value> · Inhalt: Wörter als Wortanfänge gefunden</value></data>
   <data name="Deep_MatchSome" xml:space="preserve"><value> · Teilergebnisse: Diese Dokumente enthalten nur einige der Wörter</value></data>
+  <data name="Tab_Apps" xml:space="preserve"><value>Anwendungen</value></data>
+  <data name="Kind_Command" xml:space="preserve"><value>Befehl</value></data>
+  <data name="Kind_Alias" xml:space="preserve"><value>Alias</value></data>
+  <data name="Kind_AliasAdmin" xml:space="preserve"><value>Alias · Administrator</value></data>
+  <data name="Set_AppsRunCommands" xml:space="preserve"><value>Ausführen-Befehle (Win+R): Programme im PATH, App Paths, .msc und .cpl</value></data>
+  <data name="Set_AppsRunCommandsTip" xml:space="preserve"><value>Geben Sie einen Befehl wie in Win+R ein (mstsc, regedit, services.msc), optional mit Argumenten (mstsc /v:server). Befehle erscheinen bei exaktem Namen oder einem Präfix von mindestens 3 Buchstaben.</value></data>
+  <data name="Set_Aliases" xml:space="preserve"><value>Aliase</value></data>
+  <data name="Set_AliasesHelp" xml:space="preserve"><value>Ein im Launcher eingegebenes Schlüsselwort startet ein Programm, eine Datei, einen Ordner oder eine Adresse. Nach dem Schlüsselwort eingegebener Text wird an die Argumente angehängt. Umgebungsvariablen wie %SystemRoot% sind erlaubt.</value></data>
+  <data name="Set_AliasKeyword" xml:space="preserve"><value>Schlüsselwort (ohne Leerzeichen):</value></data>
+  <data name="Set_AliasTarget" xml:space="preserve"><value>Ziel:</value></data>
+  <data name="Set_AliasTargetTip" xml:space="preserve"><value>Programm, Datei, Ordner oder Adresse (ms-settings:display, https://…)</value></data>
+  <data name="Set_AliasBrowse" xml:space="preserve"><value>Durchsuchen…</value></data>
+  <data name="Set_AliasArguments" xml:space="preserve"><value>Argumente:</value></data>
+  <data name="Set_AliasWorkDir" xml:space="preserve"><value>Arbeitsordner (optional):</value></data>
+  <data name="Set_AliasAdmin" xml:space="preserve"><value>Als Administrator ausführen</value></data>
+  <data name="Set_AliasEmptyKeyword" xml:space="preserve"><value>Ein Alias hat kein Schlüsselwort.</value></data>
+  <data name="Set_AliasSpace" xml:space="preserve"><value>Das Schlüsselwort „{0}“ enthält ein Leerzeichen: Text nach einem Leerzeichen wird als Argument übergeben.</value></data>
+  <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>Der Alias „{0}“ hat kein Ziel.</value></data>
+  <data name="Set_AliasDuplicate" xml:space="preserve"><value>Das Schlüsselwort „{0}“ wird von mehreren Aliasen verwendet.</value></data>
 </root>

@@ -7,15 +7,22 @@ namespace Seekbeam.Core.Apps;
 
 /// <summary>
 /// Builds the application index: Start Menu (user + common) and Desktop (user + public) shortcuts parsed with
-/// <see cref="LnkParser"/>, packaged apps (UWP/MSIX) enumerated from shell:AppsFolder, and .exe files of configured
-/// folders. Everything is read-only.
+/// <see cref="LnkParser"/>, packaged apps (UWP/MSIX) enumerated from shell:AppsFolder, .exe files of configured
+/// folders, Win+R commands (<see cref="RunCommands"/>) and user aliases. Everything is read-only.
+/// Run commands are refreshed on their own timer (<see cref="CommandsRefreshInterval"/>): a listing of the PATH folders
+/// costs a few milliseconds, whereas watching System32 would wake Seekbeam at every Windows update.
 /// </summary>
 public sealed class AppScanner : IDisposable
 {
     private readonly AppCatalog _catalog;
     private readonly List<FileSystemWatcher> _watchers = [];
     private Timer? _debounce;
+    private Timer? _commandsTimer;
     private AppsConfig _cfg = new();
+    private readonly object _publishLock = new();
+    private List<AppEntry> _base = [];
+    private List<AppEntry> _commands = [];
+    public static readonly TimeSpan CommandsRefreshInterval = TimeSpan.FromMinutes(15);
     public DateTime LastRefreshUtc { get; private set; }
     public TimeSpan LastRefreshDuration { get; private set; }
 
@@ -39,6 +46,9 @@ public sealed class AppScanner : IDisposable
         foreach (var w in _watchers) w.Dispose();
         _watchers.Clear();
         _debounce ??= new Timer(_ => Refresh(), null, Timeout.Infinite, Timeout.Infinite);
+        _commandsTimer ??= new Timer(_ => RefreshCommands(), null, Timeout.Infinite, Timeout.Infinite);
+        _commandsTimer.Change(cfg.RunCommands ? CommandsRefreshInterval : Timeout.InfiniteTimeSpan,
+            cfg.RunCommands ? CommandsRefreshInterval : Timeout.InfiniteTimeSpan);
         var folders = new List<string>();
         if (cfg.StartMenu) folders.AddRange(StartMenuFolders());
         if (cfg.Desktop) folders.AddRange(DesktopFolders());
@@ -74,10 +84,25 @@ public sealed class AppScanner : IDisposable
             }
         }
         catch (Exception ex) { Log.Error("Apps", "Refresh failed", ex); }
-        _catalog.Replace(apps);
+        lock (_publishLock) _base = apps;
+        RefreshCommands();
         LastRefreshUtc = DateTime.UtcNow;
         LastRefreshDuration = sw.Elapsed;
         Log.Info("Apps", $"{_catalog.Count} applications indexed in {sw.ElapsedMilliseconds} ms");
+    }
+
+    /// <summary>Rescans the Win+R commands only, then republishes the catalog.</summary>
+    public void RefreshCommands()
+    {
+        List<AppEntry> commands = [];
+        try { if (_cfg.RunCommands) commands = RunCommands.Scan(); }
+        catch (Exception ex) { Log.Warn("Apps", "Run commands scan failed: " + ex.Message); }
+        lock (_publishLock)
+        {
+            _commands = commands;
+            var aliases = _cfg.Aliases.Select(AppEntry.FromAlias).OfType<AppEntry>();
+            _catalog.Replace(aliases.Concat(_base).Concat(_commands));
+        }
     }
 
     private static readonly string[] UninstallWords = ["uninstall", "désinstaller", "desinstaller", "uninst", "remove "];
@@ -140,6 +165,7 @@ public sealed class AppScanner : IDisposable
     {
         foreach (var w in _watchers) w.Dispose();
         _debounce?.Dispose();
+        _commandsTimer?.Dispose();
     }
 }
 

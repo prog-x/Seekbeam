@@ -108,6 +108,47 @@
                     </Grid>
                 </DockPanel>
             </TabItem>
+            <TabItem x:Name="AppsTab" Header="{l:Tr Tab_Apps}">
+                <DockPanel Margin="10">
+                    <StackPanel DockPanel.Dock="Top">
+                        <CheckBox x:Name="AppsStart" Content="{l:Tr Set_AppsStart}" />
+                        <CheckBox x:Name="AppsDesktop" Content="{l:Tr Set_AppsDesktop}" />
+                        <CheckBox x:Name="AppsStore" Content="{l:Tr Set_AppsStore}" />
+                        <CheckBox x:Name="AppsRunCommands" Content="{l:Tr Set_AppsRunCommands}" ToolTip="{l:Tr Set_AppsRunCommandsTip}" />
+                        <TextBlock Text="{l:Tr Set_ExeFolders}" Margin="0,6,0,2" />
+                        <TextBox x:Name="ExeFolders" AcceptsReturn="True" Height="44" VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
+                    <GroupBox Header="{l:Tr Set_Aliases}" Margin="0,10,0,0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="{l:Tr Set_AliasesHelp}" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}" Margin="0,0,0,6" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="200" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
+                                        <Button Content="{l:Tr Set_Add}" Click="AddAlias_Click" />
+                                        <Button Content="{l:Tr Set_Remove}" Click="RemoveAlias_Click" />
+                                    </StackPanel>
+                                    <ListBox x:Name="AliasesList" DisplayMemberPath="Keyword" SelectionChanged="AliasesList_SelectionChanged" />
+                                </DockPanel>
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0" x:Name="AliasPanel">
+                                    <TextBlock Text="{l:Tr Set_AliasKeyword}" />
+                                    <TextBox x:Name="AliasKeyword" TextChanged="AliasKeyword_TextChanged" Margin="0,2,0,6" />
+                                    <TextBlock Text="{l:Tr Set_AliasTarget}" />
+                                    <DockPanel Margin="0,2,0,6">
+                                        <Button DockPanel.Dock="Right" Content="{l:Tr Set_AliasBrowse}" Click="BrowseAliasTarget_Click" Margin="6,0,0,0" />
+                                        <TextBox x:Name="AliasTarget" ToolTip="{l:Tr Set_AliasTargetTip}" />
+                                    </DockPanel>
+                                    <TextBlock Text="{l:Tr Set_AliasArguments}" />
+                                    <TextBox x:Name="AliasArguments" Margin="0,2,0,6" />
+                                    <TextBlock Text="{l:Tr Set_AliasWorkDir}" />
+                                    <TextBox x:Name="AliasWorkDir" Margin="0,2,0,6" />
+                                    <CheckBox x:Name="AliasAdmin" Content="{l:Tr Set_AliasAdmin}" />
+                                </StackPanel>
+                            </Grid>
+                        </DockPanel>
+                    </GroupBox>
+                </DockPanel>
+            </TabItem>
             <TabItem Header="{l:Tr Tab_Content}">
                 <StackPanel Margin="10">
                     <CheckBox x:Name="ContentEnabled" Content="{l:Tr Set_ContentEnabled}" />
@@ -188,11 +229,6 @@
                     <CheckBox x:Name="MatchPath" Content="{l:Tr Set_MatchPath}" />
                     <CheckBox x:Name="SearchHidden" Content="{l:Tr Set_SearchHidden}" />
                     <CheckBox x:Name="SearchSystem" Content="{l:Tr Set_SearchSystem}" />
-                    <CheckBox x:Name="AppsStart" Content="{l:Tr Set_AppsStart}" />
-                    <CheckBox x:Name="AppsDesktop" Content="{l:Tr Set_AppsDesktop}" />
-                    <CheckBox x:Name="AppsStore" Content="{l:Tr Set_AppsStore}" />
-                    <TextBlock Text="{l:Tr Set_ExeFolders}" Margin="0,6,0,2" />
-                    <TextBox x:Name="ExeFolders" AcceptsReturn="True" Height="50" />
                     <GroupBox Header="{l:Tr Set_Privacy}" Margin="0,10,0,0">
                         <StackPanel>
                             <CheckBox x:Name="Learning" Content="{l:Tr Set_Learning}" />

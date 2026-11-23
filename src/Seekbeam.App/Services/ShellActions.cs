@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using Seekbeam.App.Native;
+using Seekbeam.Core.Apps;
 using Seekbeam.Core.Diagnostics;
 using Seekbeam.Core.Search;
 
@@ -13,12 +14,22 @@ namespace Seekbeam.App.Services;
 /// </summary>
 public static class ShellActions
 {
+    /// <summary>Opens a file or folder, or launches an application, run command or alias (with its arguments; elevated
+    /// when the alias asks for it).</summary>
     public static bool Open(SearchResult r) => r.Kind == ResultKind.App && r.App != null
-        ? Execute(null, r.App.LaunchPath, null, r.App.WorkingDirectory)
+        ? Execute(r.App.RunAsAdmin ? "runas" : null, r.App.LaunchPath, AppEntry.JoinArguments(r.App.LaunchArguments, r.Arguments), r.App.WorkingDirectory)
         : Execute(null, r.FullPath, null, r.Directory);
 
-    public static bool RunAsAdministrator(SearchResult r) =>
-        Execute("runas", r.Kind == ResultKind.App && r.App != null ? r.App.LaunchPath : r.FullPath, null, r.Directory);
+    public static bool RunAsAdministrator(SearchResult r) => r.Kind == ResultKind.App && r.App != null
+        ? Execute("runas", r.App.LaunchPath, AppEntry.JoinArguments(r.App.LaunchArguments, r.Arguments), r.App.WorkingDirectory)
+        : Execute("runas", r.FullPath, null, r.Directory);
+
+    /// <summary>True when the result has a location on disk (not a packaged app, URI or bare command name).</summary>
+    public static bool HasLocation(SearchResult r)
+    {
+        string? path = r.Kind == ResultKind.App ? r.App?.Target ?? r.App?.LaunchPath : r.FullPath;
+        return !string.IsNullOrEmpty(path) && r.App?.AppUserModelId == null && System.IO.Path.IsPathFullyQualified(path);
+    }
 
     public static bool OpenWith(SearchResult r) => Execute("openas", r.FullPath, null, null, invokeIdList: true);
 
@@ -29,7 +40,7 @@ public static class ShellActions
     public static bool OpenContainingFolder(SearchResult r)
     {
         string? path = r.Kind == ResultKind.App ? r.App?.Target ?? r.App?.LaunchPath : r.FullPath;
-        if (string.IsNullOrEmpty(path) || path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.IsNullOrEmpty(path) || !HasLocation(r)) return false;
         IntPtr pidl = Win32.ILCreateFromPathW(path);
         if (pidl == IntPtr.Zero) return Execute(null, System.IO.Path.GetDirectoryName(path) ?? path, null, null);
         try { return Win32.SHOpenFolderAndSelectItems(pidl, 0, IntPtr.Zero, 0) == 0; }

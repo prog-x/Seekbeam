@@ -51,6 +51,7 @@ public sealed class SearchEngine
             int k = Math.Clamp(req.MaxResults, 1, 500);
 
             var apps = req.IncludeApps ? _apps.Search(q, opt, _usage.BoostForKey) : [];
+            var command = req.IncludeApps ? CommandWithArguments(req.Query, opt) : null;
             NameSearcher.Outcome outcome = new();
             long indexed = 0;
             if (req.IncludeFiles)
@@ -63,6 +64,7 @@ public sealed class SearchEngine
 
             // Merge apps and files by score, then hydrate only the winners.
             var merged = new List<(int Score, AppEntry? App, NameCandidate? File, int Errors)>();
+            if (command is { } cmd) merged.Add((cmd.Score, cmd.App, null, 0));
             foreach (var a in apps) merged.Add((a.Score, a.App, null, a.Errors));
             foreach (var c in outcome.Top) merged.Add((c.Score, null, c, c.Errors));
             merged.Sort((x, y) => y.Score.CompareTo(x.Score));
@@ -73,7 +75,16 @@ public sealed class SearchEngine
             var results = new List<SearchResult>(merged.Count);
             foreach (var m in merged)
             {
-                if (m.App != null)
+                if (command is { } c && ReferenceEquals(m.App, c.App) && m.Score == c.Score)
+                {
+                    results.Add(new SearchResult
+                    {
+                        Kind = ResultKind.App, Name = c.App.Name + " " + c.Arguments, FullPath = c.App.LaunchPath, Directory = c.App.Target,
+                        Score = m.Score, App = c.App, Arguments = c.Arguments, Highlights = [new Highlight(0, c.App.Name.Length)],
+                    });
+                    command = null;
+                }
+                else if (m.App != null)
                 {
                     results.Add(new SearchResult
                     {
@@ -95,7 +106,7 @@ public sealed class SearchEngine
             return new SearchResultSet
             {
                 Results = results,
-                TotalMatches = outcome.TotalMatches + apps.Count,
+                TotalMatches = outcome.TotalMatches + apps.Count + (command != null ? 1 : 0),
                 Elapsed = sw.Elapsed,
                 UsedFuzzy = outcome.UsedFuzzy,
                 IndexedEntries = indexed,
@@ -105,6 +116,24 @@ public sealed class SearchEngine
         {
             if (Interlocked.Decrement(ref _active) == 0) SearchingChanged?.Invoke(false);
         }
+    }
+
+    /// <summary>
+    /// "mstsc /v:server", "hosts", "ping 1.1.1.1": when the first word is exactly a run command or an alias and more
+    /// text follows, offers that command with the rest as arguments (like Win+R). Scored as the exact command, so it
+    /// tops ordinary matches without hiding a file whose name is the whole query.
+    /// </summary>
+    private (AppEntry App, string Arguments, int Score)? CommandWithArguments(string query, NameSearchOptions opt)
+    {
+        string raw = query.Trim();
+        int sp = raw.IndexOfAny([' ', '\t']);
+        if (sp <= 0) return null;
+        string args = raw[(sp + 1)..].Trim();
+        if (args.Length == 0 || !_apps.TryGetCommand(raw[..sp], out var app)) return null;
+        var name = QueryParser.Parse(app.Name);
+        int score = Ranking.TextScore(Normalizer.NormalizeToBytes(app.Name), false, name, 1u, opt.Weights, 0) + opt.Weights.App
+            + (app.Source == AppSource.Alias ? AppCatalog.AliasExactBonus : 0) + _usage.BoostForKey(app.Key);
+        return (app, args, score);
     }
 
     /// <summary>Character ranges of <paramref name="name"/> matching the normalized tokens (accent/case-insensitive).</summary>

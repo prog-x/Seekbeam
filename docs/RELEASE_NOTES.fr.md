@@ -4,6 +4,8 @@
 
 ## Non publié
 
+- **Nouveau : commandes Exécuter et alias.** Le launcher comprend ce que comprend `Win+R` : programmes du PATH (`mstsc`, `regedit`), applications enregistrées dans App Paths (`excel`), consoles (`services.msc`, ou simplement `services`) et modules du Panneau de configuration (`appwiz.cpl`), éventuellement suivis d'arguments (`mstsc /v:serveur`). Pour garder des résultats lisibles, les commandes n'apparaissent que pour leur nom exact ou un préfixe d'au moins 3 lettres. Les **alias** (Paramètres → nouvel onglet **Applications**) associent vos propres mots-clés à un programme, un fichier, un dossier ou une adresse, avec des arguments et, si besoin, les droits d'administrateur. Un alias `hosts` est fourni : il ouvre le fichier hosts dans le Bloc-notes en administrateur. Schéma de configuration 3 (`Apps.RunCommands`, `Apps.Aliases`).
+
 - **Correctif : les résultats par le contenu pouvaient rester hors de vue dans le launcher.** Ils s'ajoutaient sous les résultats par nom : quand les noms remplissaient la liste, ils se retrouvaient après la dernière ligne, voire au-delà de la hauteur visible. Ils occupent désormais les lignes libres de la liste, en gardent les deux dernières lignes quand les noms la remplissent déjà (liste de 8 par défaut) et passent avant les correspondances approximatives de nom (≈). La liste ne dépasse jamais la taille configurée. Les erreurs d'affichage des résultats du launcher sont désormais journalisées au lieu d'être perdues silencieusement.
 
 ## 1.0.0 — 2026-11-22

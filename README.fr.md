@@ -19,6 +19,7 @@ Recherche locale ultra-rapide, lanceur d'applications et indexation documentaire
 - **Double Ctrl** : la fenêtre de recherche s'ouvre instantanément (centrée ou près du curseur).
 - **Noms et chemins** : mots dans n'importe quel ordre, morceaux de mots, insensible à la casse et aux accents, tolérant aux fautes de frappe. `Ant 202611 cahier` trouve `20261121_cahier_des_charges_…_Anthropic_Lucens.docx`.
 - **Applications** : menu Démarrer, bureau, applications du Store (UWP/MSIX), exécutables de dossiers choisis.
+- **Commandes et alias** : commandes de Win+R (`mstsc`, `regedit`, `services.msc`, avec arguments : `mstsc /v:serveur`) et vos propres mots-clés (`hosts` ouvre le fichier hosts dans le Bloc-notes en administrateur).
 - **Plein texte** :
   - formats : PDF, Word (DOC/DOCX), Excel (XLS/XLSX), PowerPoint (PPT/PPTX), OpenDocument, RTF, HTML/XML, JSON/YAML/CSV, code source, logs, archives ZIP ;
   - requêtes : phrases exactes, `OR`, exclusions ;

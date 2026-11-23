@@ -19,6 +19,7 @@ Seekbeam is a fast local search tool, application launcher and document indexer 
 - **Double Ctrl**: the search window opens instantly (centered or near the cursor).
 - **Names and paths**: words in any order, partial words, case- and accent-insensitive, typo-tolerant. `Ant 202611 cahier` finds `20261121_cahier_des_charges_…_Anthropic_Lucens.docx`.
 - **Applications**: Start menu, desktop, Store apps (UWP/MSIX), and executables from folders you choose.
+- **Commands and aliases**: Win+R commands (`mstsc`, `regedit`, `services.msc`, with arguments: `mstsc /v:server`) and your own keywords (`hosts` opens the hosts file in Notepad as administrator).
 - **Full text**:
   - formats: PDF, Word (DOC/DOCX), Excel (XLS/XLSX), PowerPoint (PPT/PPTX), OpenDocument, RTF, HTML/XML, JSON/YAML/CSV, source code, logs and ZIP archives;
   - queries: exact phrases, `OR` and exclusions;

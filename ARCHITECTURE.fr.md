@@ -55,7 +55,7 @@ Un seul processus résident (UI + moteur) et un processus enfant d'extraction. A
 | `Discovery` | `OpportunisticDiscovery`, `RecentItemsMonitor` | découverte via « Éléments récents » et ouvertures Seekbeam |
 | `Content` | `ContentDb`, `ContentIndexer`, `ContentSearch`, `Snippets` | FTS5, file de contenu, extraits |
 | `Extraction` | `IContentExtractor` + extracteurs, `ExtractorClient`, `ExtractorProtocol` | formats, limites, isolation |
-| `Apps` | `AppIndex`, `LnkParser`, `AppsFolderEnumerator` | menu Démarrer, bureau, UWP/MSIX, .exe configurés |
+| `Apps` | `AppIndex`, `LnkParser`, `AppsFolderEnumerator`, `RunCommands` | menu Démarrer, bureau, UWP/MSIX, .exe configurés, commandes Win+R, alias utilisateur |
 | `Resources` | `ResourceManager`, `SystemProbe`, `Throttle` | modes, adaptation, pause, débit |
 | `Diagnostics` | `Log`, `Stats`, `ErrorJournal` | logs locaux tournants, compteurs, erreurs bornées |
 
@@ -214,6 +214,7 @@ Signaux du mode Auto : CPU système (`GetSystemTimes`), mémoire (`GlobalMemoryS
 - **Fenêtre** : WPF sans bordure, coins arrondis DWM, pré-créée et masquée au démarrage (affichage < 50 ms), positionnée au centre de l'écran actif ou près du curseur.
 - **Actions** : `ShellExecuteEx` (open, runas, openas, properties), `SHOpenFolderAndSelectItems`, presse-papiers. Aucune action ne modifie un fichier.
 - **Applications** : menu Démarrer et bureau (`.lnk` analysés par notre parseur), `shell:AppsFolder` (IShellItem, AUMID UWP/MSIX), `.exe` des dossiers configurés.
+- **Commandes Exécuter et alias** (TD-19) : fichiers des dossiers du PATH (.com/.exe/.bat/.cmd/.msc/.cpl, sans récursion, PATH lu dans le registre) et enregistrements App Paths, réexaminés toutes les 15 minutes (≈ 900 entrées, 10 à 30 ms) ; alias de l'utilisateur issus de la configuration. Les commandes ne correspondent que par leur nom exact ou un préfixe d'au moins 3 lettres. « commande arguments » propose la commande avec ces arguments.
 - **Tray** : `NotifyIcon` (menu : rechercher, recherche avancée, tableau de bord, pause, paramètres, quitter).
 - **Démarrage auto** : `HKCU\…\Run`. Instance unique : mutex nommé + événement « show ».
 

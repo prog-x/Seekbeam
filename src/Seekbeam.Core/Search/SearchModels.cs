@@ -27,6 +27,8 @@ public sealed class SearchResult
     public IReadOnlyList<Highlight> Highlights { get; init; } = [];
     /// <summary>For applications: launch information.</summary>
     public Apps.AppEntry? App { get; init; }
+    /// <summary>Arguments typed after a run command or alias ("mstsc /v:server"), appended at launch.</summary>
+    public string? Arguments { get; init; }
     public string? Snippet { get; init; }
     public IReadOnlyList<Highlight> SnippetHighlights { get; init; } = [];
     public override string ToString() => $"{Score,6} {Kind,-6} {FullPath}";

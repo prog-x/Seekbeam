@@ -347,4 +347,23 @@ Indicizzare comunque il contenuto di Download?</value></data>
   <data name="Launcher_ContentPrefix" xml:space="preserve"><value> (parole che iniziano così)</value></data>
   <data name="Deep_MatchPrefix" xml:space="preserve"><value> · contenuto: parole trovate come inizio di parola</value></data>
   <data name="Deep_MatchSome" xml:space="preserve"><value> · risultati parziali: questi documenti contengono solo alcune delle parole</value></data>
+  <data name="Tab_Apps" xml:space="preserve"><value>Applicazioni</value></data>
+  <data name="Kind_Command" xml:space="preserve"><value>Comando</value></data>
+  <data name="Kind_Alias" xml:space="preserve"><value>Alias</value></data>
+  <data name="Kind_AliasAdmin" xml:space="preserve"><value>Alias · amministratore</value></data>
+  <data name="Set_AppsRunCommands" xml:space="preserve"><value>Comandi Esegui (Win+R): programmi del PATH, App Paths, .msc e .cpl</value></data>
+  <data name="Set_AppsRunCommandsTip" xml:space="preserve"><value>Digitate un comando come in Win+R (mstsc, regedit, services.msc), eventualmente seguito da argomenti (mstsc /v:server). I comandi compaiono per il nome esatto o un prefisso di almeno 3 lettere.</value></data>
+  <data name="Set_Aliases" xml:space="preserve"><value>Alias</value></data>
+  <data name="Set_AliasesHelp" xml:space="preserve"><value>Una parola chiave digitata nel launcher avvia un programma, un file, una cartella o un indirizzo. Il testo digitato dopo la parola chiave viene aggiunto agli argomenti. Sono ammesse variabili d&apos;ambiente come %SystemRoot%.</value></data>
+  <data name="Set_AliasKeyword" xml:space="preserve"><value>Parola chiave (senza spazi):</value></data>
+  <data name="Set_AliasTarget" xml:space="preserve"><value>Destinazione:</value></data>
+  <data name="Set_AliasTargetTip" xml:space="preserve"><value>Programma, file, cartella o indirizzo (ms-settings:display, https://…)</value></data>
+  <data name="Set_AliasBrowse" xml:space="preserve"><value>Sfoglia…</value></data>
+  <data name="Set_AliasArguments" xml:space="preserve"><value>Argomenti:</value></data>
+  <data name="Set_AliasWorkDir" xml:space="preserve"><value>Cartella di lavoro (facoltativa):</value></data>
+  <data name="Set_AliasAdmin" xml:space="preserve"><value>Esegui come amministratore</value></data>
+  <data name="Set_AliasEmptyKeyword" xml:space="preserve"><value>Un alias non ha parola chiave.</value></data>
+  <data name="Set_AliasSpace" xml:space="preserve"><value>La parola chiave «{0}» contiene uno spazio: il testo dopo uno spazio viene passato come argomento.</value></data>
+  <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>L&apos;alias «{0}» non ha destinazione.</value></data>
+  <data name="Set_AliasDuplicate" xml:space="preserve"><value>La parola chiave «{0}» è usata da più alias.</value></data>
 </root>

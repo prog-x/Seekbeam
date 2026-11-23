@@ -14,8 +14,9 @@ public enum SandboxMode { Auto, AppContainer, LowIntegrity, Off }
 
 public sealed class SeekbeamConfig
 {
-    /// <summary>2: Content.ExcludedFolders (Downloads excluded from content extraction by default) and Content.Sandbox.</summary>
-    public const int CurrentSchemaVersion = 2;
+    /// <summary>2: Content.ExcludedFolders (Downloads excluded from content extraction by default) and Content.Sandbox.
+    /// 3: Apps.RunCommands and Apps.Aliases (the "hosts" alias is added once).</summary>
+    public const int CurrentSchemaVersion = 3;
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public GeneralConfig General { get; set; } = new();
     public HotkeyConfig Hotkey { get; set; } = new();
@@ -39,6 +40,7 @@ public sealed class SeekbeamConfig
             c.Roots.Add(new RootConfig { Path = profile, Excludes = ["AppData", ".git", "node_modules", ".vs", "__pycache__", ".cache", ".nuget"] });
         c.GlobalExcludes = ["$Recycle.Bin", "System Volume Information", "$WinREAgent", "*.tmp", "~$*", "Thumbs.db"];
         c.Content.ExcludedFolders = [KnownFolders.Downloads];
+        c.Apps.Aliases = [AliasConfig.Hosts()];
         return c;
     }
 
@@ -68,6 +70,15 @@ public sealed class SeekbeamConfig
             if (!folders.Contains(full, StringComparer.OrdinalIgnoreCase)) folders.Add(full);
         }
         Content.ExcludedFolders = folders;
+        var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in Apps.Aliases.ToList())
+        {
+            a.Keyword = (a.Keyword ?? "").Trim(); a.Target = (a.Target ?? "").Trim();
+            a.Arguments = (a.Arguments ?? "").Trim(); a.WorkingDirectory = (a.WorkingDirectory ?? "").Trim();
+            string? why = AliasConfig.Problem(a);
+            if (why == null && !keywords.Add(a.Keyword)) why = "duplicate keyword";
+            if (why != null) { Apps.Aliases.Remove(a); problems.Add($"Alias '{a.Keyword}' removed: {why}"); }
+        }
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var r in Roots.ToList())
         {
@@ -212,6 +223,41 @@ public sealed class AppsConfig
     public bool Desktop { get; set; } = true;
     public bool PackagedApps { get; set; } = true;
     public List<string> ExecutableFolders { get; set; } = [];
+    /// <summary>Commands of the Run dialog (Win+R): PATH folders, App Paths, .msc and .cpl ("mstsc", "services.msc").</summary>
+    public bool RunCommands { get; set; } = true;
+    /// <summary>User keywords launching a program, file, folder or URI with fixed arguments.</summary>
+    public List<AliasConfig> Aliases { get; set; } = [];
+}
+
+/// <summary>
+/// A keyword typed in the launcher ("hosts") that launches <see cref="Target"/> with <see cref="Arguments"/>.
+/// Environment variables (%SystemRoot%, %USERPROFILE%…) are expanded at launch time. Seekbeam only asks Windows to
+/// start the target: what that program then does is outside Seekbeam's control (FILE_IMMUTABILITY_POLICY §8).
+/// </summary>
+public sealed class AliasConfig
+{
+    public string Keyword { get; set; } = "";
+    /// <summary>Program, document, folder or URI (ms-settings:, https:…).</summary>
+    public string Target { get; set; } = "";
+    public string Arguments { get; set; } = "";
+    public string WorkingDirectory { get; set; } = "";
+    public bool RunAsAdmin { get; set; }
+
+    /// <summary>Opens the hosts file in Notepad, elevated (saving it requires administrator rights).</summary>
+    public static AliasConfig Hosts() => new()
+    {
+        Keyword = "hosts", Target = @"%SystemRoot%\System32\notepad.exe",
+        Arguments = @"%SystemRoot%\System32\drivers\etc\hosts", RunAsAdmin = true,
+    };
+
+    public const string EmptyKeyword = "empty keyword", SpaceInKeyword = "keyword contains a space", EmptyTarget = "empty target";
+
+    /// <summary>Why the alias is unusable (a code, not a sentence for the UI), or null.</summary>
+    public static string? Problem(AliasConfig a) =>
+        string.IsNullOrWhiteSpace(a.Keyword) ? EmptyKeyword
+        : a.Keyword.Trim().Any(char.IsWhiteSpace) ? SpaceInKeyword
+        : string.IsNullOrWhiteSpace(a.Target) ? EmptyTarget
+        : null;
 }
 
 public sealed class PrivacyConfig
@@ -291,6 +337,8 @@ public sealed class ConfigStore
         // Schema migrations go here (SchemaVersion < CurrentSchemaVersion).
         if (cfg.SchemaVersion < 2 && !cfg.Content.ExcludedFolders.Any(KnownFolders.IsDownloads))
             cfg.Content.ExcludedFolders.Add(KnownFolders.Downloads); // content of Downloads is no longer read by default
+        if (cfg.SchemaVersion < 3 && !cfg.Apps.Aliases.Any(a => "hosts".Equals(a.Keyword, StringComparison.OrdinalIgnoreCase)))
+            cfg.Apps.Aliases.Add(AliasConfig.Hosts());
         bool changed = cfg.SchemaVersion != SeekbeamConfig.CurrentSchemaVersion;
         cfg.SchemaVersion = SeekbeamConfig.CurrentSchemaVersion;
         return changed;

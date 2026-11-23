@@ -142,3 +142,14 @@ Because an AppContainer cannot open user files, **Seekbeam opens each source its
 ## TD-18 — Downloads: names indexed, content never read by default
 
 The Downloads folder receives files from the Internet and e-mail. Content indexing would parse them automatically, without the user ever opening them, which is the classic way to reach a parser vulnerability. Decision: a new setting, `Content.ExcludedFolders` (folders whose files are indexed by name only), contains the Downloads known folder by default (`FOLDERID_Downloads`, which follows redirection). Configurations from schema 1 are migrated once. Removing Downloads from the list in Settings first shows an explanation of the risk and asks for confirmation. Changing the list re-evaluates the content queue: text already stored for a newly excluded folder is deleted.
+
+## TD-19 — Run commands and aliases in the launcher
+
+Users coming from Listary expect `mstsc` or `hosts` to work. Two mechanisms, rather than indexing `C:\Windows` (100,000+ files of noise, and `hosts` has no extension, so "Open" would show the "Open with" dialog):
+
+- **Run commands**: what `Win+R` resolves. Files of the PATH folders (.com/.exe/.bat/.cmd/.msc/.cpl, not recursive) and App Paths registrations. The PATH is read from the registry (machine, then user), not from Seekbeam's environment, so that a change is seen without restarting. Name resolution follows cmd.exe: PATH order, then extension order within a folder. Rescanned every 15 minutes (≈ 900 entries in 10–30 ms on the development machine) instead of watching System32 with `FileSystemWatcher`, which Windows updates would wake constantly.
+- **Ranking**: these are hundreds of terse names (msdt, mshta, msra…). They match only on the exact name (or the name without .msc/.cpl) or a prefix of at least 3 letters, never by substring or typo; the application bonus applies to exact matches only. The catalog search stays at about 25 µs per keystroke.
+- **Aliases**: user keywords → target, arguments, working folder, run as administrator. Found by keyword only (never by their target), usage learning keyed by the keyword. An exactly typed alias beats a command of the same name.
+- **Arguments**: "word rest" where `word` is exactly a command or alias offers that command with `rest` appended to its arguments, scored as the exact command (it tops ordinary matches but does not hide a file whose name is the whole query).
+- **Immutability**: directory listing through `SourceFileAccess`, registry opened read-only; launching goes through the existing `ShellExecuteEx` delegation (FILE_IMMUTABILITY_POLICY §8). The `hosts` alias deliberately opens a system file in an editor, elevated: the write, if any, is the user's action in Notepad.
+- Not done (yet): a built-in catalog of system shortcuts (`ms-settings:` pages, `shell:` folders, localized keywords).

@@ -59,6 +59,18 @@ Folders and applications have no dot. While names are still being indexed, a ban
 
 > Seekbeam never renames, moves, deletes or modifies a file. When you open a file, Windows hands it to the associated application (Word, an editor…), which may modify it as usual: that is no longer under Seekbeam's control.
 
+## Commands and aliases
+**Run commands.** Everything the Windows Run dialog (`Win+R`) understands also works in the launcher: programs in the PATH folders (`mstsc`, `regedit`, `cmd`, `winver`…), applications registered in Windows (App Paths: `excel`, `chrome`…), consoles (`services.msc`, `devmgmt.msc`; typing `services` is enough) and Control Panel applets (`appwiz.cpl`, `ncpa.cpl`).
+- A command appears when you type its exact name, or the first 3 letters or more: `ms` lists nothing, `mst` already shows `mstsc`. There is no typo tolerance for commands, so that the hundreds of terse system names never flood the results.
+- **Arguments**: type them after the command, as in `Win+R`: `mstsc /v:server01`, `ping 1.1.1.1`. The first row then launches the command with these arguments.
+- The list follows changes to the PATH and to installed programs within 15 minutes. It can be turned off in **Settings → Applications**.
+
+**Aliases** are your own keywords (**Settings → Applications → Aliases**). An alias starts a program, a file, a folder or an address (`ms-settings:display`, `https://…`), with fixed arguments, a working folder and, optionally, administrator rights. Environment variables (`%SystemRoot%`, `%USERPROFILE%`…) are allowed. Text typed after the keyword is added to the arguments. An alias whose keyword is typed exactly comes first, even before a command of the same name.
+
+Seekbeam ships with one alias: **`hosts`** opens `%SystemRoot%\System32\drivers\etc\hosts` in Notepad **as administrator**, because saving that file requires it; Windows asks for confirmation (UAC). You can edit or delete it like any other alias.
+
+> As with "Open", Seekbeam only asks Windows to start the program. What that program then does (Notepad saving the hosts file, for instance) is your action in that program, not Seekbeam's.
+
 ## Advanced search (full text)
 Press `Ctrl+D` in the launcher, or use the **Advanced search** entry in the Start menu or the tray icon menu.
 - **Formats searched**: PDF, Word, Excel, PowerPoint, OpenDocument, RTF, HTML, text, code and ZIP archives.
@@ -109,6 +121,7 @@ Tray icon menu → **Settings**, or `Ctrl+,` in the launcher. See [CONFIGURATION
 - **Locations**: folders and drives to index, exclusions, depth, content, hidden files, links.
   - **Maximum depth** (default 10): how many folder levels below the location are explored. When folders still contain items beyond this limit, Seekbeam tells you: a one-time notification after indexing, a warning in the dashboard listing the affected folders, and a hint in the launcher when a search finds nothing. Raise the limit (or set `-1` for unlimited), or add the deep folder as a separate location.
 - **Content**: extraction limits, archives, and **folders indexed by name only**. Files in these folders are found by name, but their content is never read. The Downloads folder is in this list by default: files from the Internet and e-mail land there, and indexing their content would mean parsing them automatically, even ones you never opened. If you remove it, Seekbeam first explains the risk and asks for confirmation.
+- **Applications**: application sources (Start menu, desktop, Store apps, extra executable folders), Run commands, and the alias editor (see [Commands and aliases](#commands-and-aliases)).
 - **Resources**, **Search & privacy**, **Watching**.
 
 ## Resources

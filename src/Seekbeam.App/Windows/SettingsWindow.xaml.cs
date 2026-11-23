@@ -17,6 +17,8 @@ public partial class SettingsWindow : Window
     private readonly ObservableCollection<RootConfig> _roots;
     private readonly ObservableCollection<string> _contentFolders;
     private RootConfig? _editing;
+    private readonly ObservableCollection<AliasConfig> _aliases;
+    private AliasConfig? _editingAlias;
     private readonly HotkeyService? _hotkeys;
 
     public SettingsWindow(SeekbeamEngine engine, HotkeyService? hotkeys = null)
@@ -29,6 +31,8 @@ public partial class SettingsWindow : Window
         RootsList.ItemsSource = _roots;
         _contentFolders = new ObservableCollection<string>(_cfg.Content.ExcludedFolders);
         ContentFoldersList.ItemsSource = _contentFolders;
+        _aliases = new ObservableCollection<AliasConfig>(_cfg.Apps.Aliases);
+        AliasesList.ItemsSource = _aliases;
         Load();
         WireHotkeyCapture();
         LoadAbout();
@@ -59,6 +63,8 @@ public partial class SettingsWindow : Window
         Windows.Text = string.Join(", ", c.Resources.ContentTimeWindows); HostMem.Text = c.Resources.ExtractorMemoryMB.ToString();
         Fuzzy.IsChecked = c.Search.FuzzyEnabled; MatchPath.IsChecked = c.Search.MatchInPath; SearchHidden.IsChecked = c.Search.IncludeHidden; SearchSystem.IsChecked = c.Search.IncludeSystem;
         AppsStart.IsChecked = c.Apps.StartMenu; AppsDesktop.IsChecked = c.Apps.Desktop; AppsStore.IsChecked = c.Apps.PackagedApps; ExeFolders.Text = Lines(c.Apps.ExecutableFolders);
+        AppsRunCommands.IsChecked = c.Apps.RunCommands;
+        if (_aliases.Count > 0) AliasesList.SelectedIndex = 0; else AliasPanel.IsEnabled = false;
         Learning.IsChecked = c.Privacy.Learning; History.IsChecked = c.Privacy.QueryHistory; Discovery.IsChecked = c.Discovery.Enabled; RedactPaths.IsChecked = c.Logging.RedactPaths;
         WatchEnabled.IsChecked = c.Watch.Enabled; ReconcileStartup.IsChecked = c.Watch.ReconcileAtStartup; ReconcileHours.Text = c.Watch.ReconcileIntervalHours.ToString();
         DataDir.Text = _engine.Storage.DataRoot;
@@ -112,6 +118,69 @@ public partial class SettingsWindow : Window
         if (RootsList.SelectedItem is RootConfig r) { _editing = null; _roots.Remove(r); }
     }
 
+    private void StoreAlias()
+    {
+        if (_editingAlias == null) return;
+        _editingAlias.Keyword = AliasKeyword.Text.Trim(); _editingAlias.Target = AliasTarget.Text.Trim();
+        _editingAlias.Arguments = AliasArguments.Text.Trim(); _editingAlias.WorkingDirectory = AliasWorkDir.Text.Trim();
+        _editingAlias.RunAsAdmin = AliasAdmin.IsChecked == true;
+    }
+
+    private void AliasesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        StoreAlias();
+        _editingAlias = null; // filling the fields raises TextChanged: nothing must be written into the previous alias
+        var a = AliasesList.SelectedItem as AliasConfig;
+        AliasPanel.IsEnabled = a != null;
+        AliasKeyword.Text = a?.Keyword ?? ""; AliasTarget.Text = a?.Target ?? ""; AliasArguments.Text = a?.Arguments ?? "";
+        AliasWorkDir.Text = a?.WorkingDirectory ?? ""; AliasAdmin.IsChecked = a?.RunAsAdmin == true;
+        _editingAlias = a;
+    }
+
+    private void AliasKeyword_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (_editingAlias == null) return;
+        _editingAlias.Keyword = AliasKeyword.Text.Trim();
+        AliasesList.Items.Refresh(); // the list shows the keyword as it is typed
+    }
+
+    private void AddAlias_Click(object sender, RoutedEventArgs e)
+    {
+        var a = new AliasConfig();
+        _aliases.Add(a);
+        AliasesList.SelectedItem = a;
+        AliasKeyword.Focus();
+    }
+
+    private void RemoveAlias_Click(object sender, RoutedEventArgs e)
+    {
+        if (AliasesList.SelectedItem is AliasConfig a) { _editingAlias = null; _aliases.Remove(a); }
+    }
+
+    private void BrowseAliasTarget_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Title = L.T("Set_AliasTarget"), CheckFileExists = true };
+        if (dlg.ShowDialog(this) == true) AliasTarget.Text = dlg.FileName;
+    }
+
+    /// <summary>First alias that cannot be saved (empty keyword or target, space in the keyword, duplicate) and why.</summary>
+    private (AliasConfig Alias, string Message)? InvalidAlias()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in _aliases)
+        {
+            string? key = AliasConfig.Problem(a) switch
+            {
+                AliasConfig.EmptyKeyword => "Set_AliasEmptyKeyword",
+                AliasConfig.SpaceInKeyword => "Set_AliasSpace",
+                AliasConfig.EmptyTarget => "Set_AliasEmptyTarget",
+                _ => seen.Add(a.Keyword) ? null : "Set_AliasDuplicate",
+            };
+            if (key != null) return (a, L.F(key, a.Keyword));
+        }
+        return null;
+    }
+
     private void AddContentFolder_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new Microsoft.Win32.OpenFolderDialog { Title = L.T("Set_AddContentFolderTitle"), Multiselect = true };
@@ -140,6 +209,14 @@ public partial class SettingsWindow : Window
             return;
         }
         StoreRoot();
+        StoreAlias();
+        if (InvalidAlias() is { } bad)
+        {
+            Tabs.SelectedItem = AppsTab;
+            AliasesList.SelectedItem = bad.Alias;
+            MessageBox.Show(this, bad.Message, "Seekbeam", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
         var c = _cfg;
         c.General.Language = LanguageBox.SelectedIndex > 0 ? L.Languages[LanguageBox.SelectedIndex - 1].Code : "";
         c.General.StartWithWindows = StartWithWindows.IsChecked == true; c.General.ShowTrayIcon = ShowTray.IsChecked == true;
@@ -158,6 +235,7 @@ public partial class SettingsWindow : Window
         c.Resources.UserIdleSeconds = Int(IdleSec.Text, 120); c.Resources.ContentTimeWindows = FromCsv(Windows.Text); c.Resources.ExtractorMemoryMB = Int(HostMem.Text, 0);
         c.Search.FuzzyEnabled = Fuzzy.IsChecked == true; c.Search.MatchInPath = MatchPath.IsChecked == true; c.Search.IncludeHidden = SearchHidden.IsChecked == true; c.Search.IncludeSystem = SearchSystem.IsChecked == true;
         c.Apps.StartMenu = AppsStart.IsChecked == true; c.Apps.Desktop = AppsDesktop.IsChecked == true; c.Apps.PackagedApps = AppsStore.IsChecked == true; c.Apps.ExecutableFolders = FromLines(ExeFolders.Text);
+        c.Apps.RunCommands = AppsRunCommands.IsChecked == true; c.Apps.Aliases = [.. _aliases];
         c.Privacy.Learning = Learning.IsChecked == true; c.Privacy.QueryHistory = History.IsChecked == true; c.Discovery.Enabled = Discovery.IsChecked == true; c.Logging.RedactPaths = RedactPaths.IsChecked == true;
         c.Watch.Enabled = WatchEnabled.IsChecked == true; c.Watch.ReconcileAtStartup = ReconcileStartup.IsChecked == true; c.Watch.ReconcileIntervalHours = Int(ReconcileHours.Text, 24);
         try

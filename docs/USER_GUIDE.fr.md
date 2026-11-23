@@ -35,6 +35,18 @@ Les dossiers et les applications n'ont pas de pastille. Tant que l'indexation de
 
 > Seekbeam ne renomme, ne déplace, ne supprime et ne modifie jamais un fichier. Quand vous ouvrez un fichier, Windows le confie à l'application associée (Word, un éditeur…), qui peut le modifier comme d'habitude : cela ne dépend plus de Seekbeam.
 
+## Commandes et alias
+**Commandes Exécuter.** Tout ce que comprend la boîte Exécuter de Windows (`Win+R`) fonctionne aussi dans le launcher : programmes des dossiers du PATH (`mstsc`, `regedit`, `cmd`, `winver`…), applications enregistrées dans Windows (App Paths : `excel`, `chrome`…), consoles (`services.msc`, `devmgmt.msc` ; taper `services` suffit) et modules du Panneau de configuration (`appwiz.cpl`, `ncpa.cpl`).
+- Une commande apparaît quand vous tapez son nom exact, ou ses 3 premières lettres au moins : `ms` n'affiche rien, `mst` affiche déjà `mstsc`. Les commandes ne tolèrent pas les fautes de frappe, pour que les centaines de noms système abrégés n'envahissent jamais les résultats.
+- **Arguments** : tapez-les après la commande, comme dans `Win+R` : `mstsc /v:serveur01`, `ping 1.1.1.1`. La première ligne lance alors la commande avec ces arguments.
+- La liste suit les changements du PATH et des programmes installés en 15 minutes au plus. Elle se désactive dans **Paramètres → Applications**.
+
+Les **alias** sont vos propres mots-clés (**Paramètres → Applications → Alias**). Un alias lance un programme, un fichier, un dossier ou une adresse (`ms-settings:display`, `https://…`), avec des arguments fixes, un dossier de travail et, si besoin, les droits d'administrateur. Les variables d'environnement (`%SystemRoot%`, `%USERPROFILE%`…) sont acceptées. Le texte tapé après le mot-clé est ajouté aux arguments. Un alias dont le mot-clé est tapé exactement passe en premier, même avant une commande du même nom.
+
+Seekbeam est livré avec un alias : **`hosts`** ouvre `%SystemRoot%\System32\drivers\etc\hosts` dans le Bloc-notes **en tant qu'administrateur**, car l'enregistrement de ce fichier l'exige ; Windows demande confirmation (UAC). Vous pouvez le modifier ou le supprimer comme tout autre alias.
+
+> Comme pour « Ouvrir », Seekbeam demande seulement à Windows de lancer le programme. Ce que fait ensuite ce programme (le Bloc-notes qui enregistre le fichier hosts, par exemple) est votre action dans ce programme, pas celle de Seekbeam.
+
 ## Recherche avancée (plein texte)
 `Ctrl+D` depuis le launcher, ou l'entrée « Recherche avancée » du menu Démarrer ou de l'icône.
 - Le contenu de PDF, Word, Excel, PowerPoint, OpenDocument, RTF, HTML, texte, code et archives ZIP est cherché.
@@ -68,6 +80,7 @@ Menu de l'icône → Paramètres, ou `Ctrl+,` dans le launcher. Voir [CONFIGURAT
 - **Emplacements** : dossiers et disques à indexer, exclusions, profondeur, contenu, fichiers cachés, liens.
   - **Profondeur maximale** (10 par défaut) : nombre de niveaux de dossiers explorés sous l'emplacement. Si des dossiers contiennent encore des éléments au-delà de cette limite, Seekbeam vous prévient : une notification unique après l'indexation, un avertissement dans le tableau de bord avec la liste des dossiers concernés, et une indication dans le launcher quand une recherche ne trouve rien. Augmentez la limite (ou mettez `-1` pour illimitée), ou ajoutez le dossier profond comme emplacement séparé.
 - **Contenu** : limites d'extraction, archives et **dossiers indexés par nom uniquement**. Les fichiers de ces dossiers restent trouvables par leur nom, mais leur contenu n'est jamais lu. Le dossier Téléchargements figure dans cette liste par défaut : les fichiers venus d'Internet et des e-mails y arrivent, et indexer leur contenu reviendrait à les analyser automatiquement, même ceux que vous n'avez jamais ouverts. Si vous le retirez, Seekbeam explique d'abord le risque et demande une confirmation.
+- **Applications** : sources d'applications (menu Démarrer, bureau, applications du Store, dossiers d'exécutables supplémentaires), commandes Exécuter et éditeur d'alias (voir [Commandes et alias](#commandes-et-alias)).
 - **Ressources**, **Recherche et confidentialité**, **Surveillance**.
 
 ## Ressources
