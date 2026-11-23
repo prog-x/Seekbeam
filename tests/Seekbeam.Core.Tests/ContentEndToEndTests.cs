@@ -349,6 +349,73 @@ public sealed class ContentEndToEndTests : IDisposable
         Assert.Contains("second", r.Text);
     }
 
+    private long IdOf(string name) =>
+        Assert.Single(_engine!.Search.Search(new Search.SearchRequest { Query = name, IncludeApps = false }, default).Results).EntryId;
+
+    private void Queue(params long[] ids)
+    {
+        lock (_engine!.Catalog.WriteLock)
+            foreach (long id in ids)
+            {
+                using var cmd = _engine.Catalog.Writer.CreateCommand();
+                cmd.CommandText = "INSERT OR REPLACE INTO content_queue(entry_id,priority,op,seq,attempts,not_before) VALUES($id,0,0,0,0,0)";
+                cmd.Parameters.AddWithValue("$id", id);
+                cmd.ExecuteNonQuery();
+            }
+        _engine.ContentIndexer!.Wake();
+    }
+
+    [Fact]
+    public void FilesOfAnOfflineLocationStayQueuedUntilItIsBack()
+    {
+        string src = Path.Combine(_base, "share"), offline = Path.Combine(_base, "share-offline");
+        Directory.CreateDirectory(src);
+        File.WriteAllText(Path.Combine(src, "contrat.txt"), "clause zzoffline1zz");
+        File.WriteAllText(Path.Combine(src, "budget.txt"), "ligne zzoffline2zz");
+        var e = Start(src);
+        Assert.True(WaitFor(() => Count("zzoffline1zz") == 1 && Count("zzoffline2zz") == 1), "initial extraction");
+        long a = IdOf("contrat.txt"), b = IdOf("budget.txt");
+        var saved = Content.ContentIndexer.UnreachableRetryDelay;
+        try
+        {
+            Content.ContentIndexer.UnreachableRetryDelay = TimeSpan.FromSeconds(2);
+            // The drive is disconnected: forget the extracted text and queue both files again.
+            Directory.Move(src, offline);
+            e.ContentDb.Delete(a); e.ContentDb.Delete(b);
+            Queue(a, b);
+            Assert.True(WaitFor(() => e.ContentIndexer!.Stats().Deferred == 2), "postponed, not dropped: " + e.ContentIndexer!.Stats().Deferred);
+            Assert.Equal(0, e.ContentDb.Counts().Failed);          // not recorded as extraction failures
+            Assert.NotNull(e.Entries.Get(a));                      // the name index keeps the files of an offline location
+
+            // Reconnected: extracted at the next retry, and the location is no longer reported unavailable.
+            Directory.Move(offline, src);
+            Assert.True(WaitFor(() => Count("zzoffline1zz") == 1 && Count("zzoffline2zz") == 1), "extracted once back");
+            e.Reconcile();
+            Assert.True(WaitFor(() => e.Roots().Single().State == 0), "root state " + e.Roots().Single().State);
+        }
+        finally { Content.ContentIndexer.UnreachableRetryDelay = saved; }
+    }
+
+    [Fact]
+    public void PendingFilesMissingFromTheQueueAreQueuedAgainByTheCensus()
+    {
+        string src = Path.Combine(_base, "src");
+        Directory.CreateDirectory(src);
+        File.WriteAllText(Path.Combine(src, "perdu.txt"), "texte zzlostzz");
+        var e = Start(src);
+        Assert.True(WaitFor(() => Count("zzlostzz") == 1 && e.ContentIndexer!.Stats() is { Busy: false, QueueLength: 0 }), "initial extraction");
+        // Dropped from the queue without being extracted (what an offline drive used to cause): pending forever.
+        e.ContentDb.Delete(IdOf("perdu.txt"));
+        Assert.Equal(0, Count("zzlostzz"));
+        var r = e.RefreshContentCoverage().GetAwaiter().GetResult()!;
+        Assert.True(r.Requeued == 1 || e.LastContentCoverage!.Requeued == 1 || Count("zzlostzz") == 1, "requeued");
+        Assert.True(WaitFor(() => Count("zzlostzz") == 1), "extracted again");
+
+        // At most once an hour: a file still pending after being processed is not queued by every census.
+        e.ContentDb.Delete(IdOf("perdu.txt"));
+        Assert.Equal(0, e.RefreshContentCoverage().GetAwaiter().GetResult()!.Requeued);
+    }
+
     public void Dispose()
     {
         _engine?.Dispose();

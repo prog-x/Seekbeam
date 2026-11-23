@@ -36,7 +36,9 @@ public partial class LauncherWindow : Window
         _engine = engine;
         _icons = icons;
         Results.ItemsSource = _items;
-        Deactivated += (_, _) => { if (_engine.Config.Current.Launcher.CloseOnFocusLoss && !Results.ContextMenu?.IsOpen == true) HideLauncher(); };
+        // Click elsewhere = Escape. A context menu open on a result is part of the launcher: it does not count as leaving it.
+        // (Results.ContextMenu is null until the first right-click: "!menu?.IsOpen == true" was then always false.)
+        Deactivated += (_, _) => { if (_engine.Config.Current.Launcher.CloseOnFocusLoss && Results.ContextMenu?.IsOpen != true) HideLauncher(); };
         _statusTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _statusTimer.Tick += (_, _) => UpdateIdleStatus();
         SourceInitialized += (_, _) => Theme.StyleWindow(this, Theme.IsDark(_engine.Config.Current.Launcher.Theme));
@@ -309,7 +311,12 @@ public partial class LauncherWindow : Window
         var container = Results.ItemContainerGenerator.ContainerFromItem(item) as UIElement;
         menu.PlacementTarget = container ?? Results;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.Closed += (_, _) => { if (_shown) QueryBox.Focus(); };
+        // Menu dismissed by a click outside Seekbeam: the launcher lost the focus meanwhile, close it as well.
+        menu.Closed += (_, _) => Dispatcher.BeginInvoke(() =>
+        {
+            if (!_shown) return;
+            if (!IsActive && _engine.Config.Current.Launcher.CloseOnFocusLoss) HideLauncher(); else QueryBox.Focus();
+        }, System.Windows.Threading.DispatcherPriority.Input);
         Results.ContextMenu = menu;
         menu.IsOpen = true;
     }

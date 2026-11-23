@@ -269,6 +269,10 @@ public sealed class SeekbeamEngine : IDisposable
     /// <summary>Raised (on a background thread) when <see cref="LastContentCoverage"/> has been updated.</summary>
     public event Action<ContentCoverageReport>? ContentCoverageUpdated;
 
+    /// <summary>Minimum delay between two self-repairs of the content queue (see <see cref="ContentCoverage"/>).</summary>
+    internal static TimeSpan SelfRepairInterval = TimeSpan.FromHours(1);
+    private DateTime _lastSelfRepairUtc = DateTime.MinValue;
+
     /// <summary>
     /// Recomputes the census in the background at low priority, yielding to searches like the rest of the indexing.
     /// If one is already running, returns it instead of starting another. Null if cancelled or failed.
@@ -286,9 +290,16 @@ public sealed class SeekbeamEngine : IDisposable
                 thread.Priority = ThreadPriority.BelowNormal;
                 try
                 {
-                    var report = ContentCoverage.Compute(Catalog, ContentDb, Entries, Indexer, ContentIndexer != null, _gate, linked.Token);
+                    var ci = ContentIndexer;
+                    // Self-repair at most once an hour: a file still pending after being processed (catalog behind the
+                    // disk until the next reconciliation) must not be queued again by every census.
+                    bool repair = ci != null && DateTime.UtcNow - _lastSelfRepairUtc >= SelfRepairInterval;
+                    var report = ContentCoverage.Compute(Catalog, ContentDb, Entries, Indexer, ci != null, _gate, linked.Token,
+                        requeue: repair ? ci!.Requeue : null);
+                    if (report.Requeued > 0) _lastSelfRepairUtc = DateTime.UtcNow;
                     LastContentCoverage = report;
-                    Log.Info("Engine", $"Content coverage: {report.Files:N0} files in {report.Elapsed.TotalMilliseconds:F0} ms");
+                    Log.Info("Engine", $"Content coverage: {report.Files:N0} files in {report.Elapsed.TotalMilliseconds:F0} ms"
+                                       + (report.Requeued > 0 ? $", {report.Requeued:N0} pending files queued again" : ""));
                     ContentCoverageUpdated?.Invoke(report);
                     return report;
                 }

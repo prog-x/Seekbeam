@@ -52,7 +52,7 @@ public partial class DashboardWindow : Window
         ContentText.Text = Lines(
             L.F("Dash_ContentDocs", s.ContentDocs, s.ContentFailed),
             L.F("Dash_ContentSize", Mb(s.ContentBytes)),
-            L.F("Dash_ContentQueue", c.QueueLength),
+            c.Deferred > 0 ? L.F("Dash_ContentQueueDeferred", c.QueueLength, c.Deferred) : L.F("Dash_ContentQueue", c.QueueLength),
             L.F("Dash_ContentRead", c.Busy ? L.F("Dash_ContentRate", c.FilesPerSecond) : L.T("Dash_Idle"), Mb(c.BytesRead)),
             L.F("Dash_ContentSkipped", c.Skipped),
             L.F("Dash_Extractor", c.HostPrivateBytes > 0 ? Mb(c.HostPrivateBytes)

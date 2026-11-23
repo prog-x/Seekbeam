@@ -366,4 +366,5 @@ Den Inhalt von „Downloads“ trotzdem indizieren?</value></data>
   <data name="Set_AliasSpace" xml:space="preserve"><value>Das Schlüsselwort „{0}“ enthält ein Leerzeichen: Text nach einem Leerzeichen wird als Argument übergeben.</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>Der Alias „{0}“ hat kein Ziel.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>Das Schlüsselwort „{0}“ wird von mehreren Aliasen verwendet.</value></data>
+  <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>Warteschlange: {0:N0} Dateien · {1:N0} zurückgestellt (Laufwerk nicht verfügbar oder Datei gesperrt)</value></data>
 </root>

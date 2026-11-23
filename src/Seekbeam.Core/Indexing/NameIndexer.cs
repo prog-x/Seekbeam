@@ -250,6 +250,8 @@ public sealed class NameIndexer : IDisposable
         switch (status)
         {
             case DirectoryReadStatus.Ok:
+                // A location reported unavailable is back (reconnected drive or share).
+                if (dir.ParentId == 0) Exec(b, "UPDATE roots SET state=0, last_error=NULL WHERE id=$id AND state=1", ("$id", dir.RootId));
                 _scanner.ApplyDiff(b, dir, path, root, scope, content, disk, it.Mode,
                     it.Priority == QueuePriority.Reconcile ? QueuePriority.Reconcile : it.Priority == QueuePriority.Event ? QueuePriority.Event : it.Priority);
                 DeleteQueueItem(b, it.DirId);

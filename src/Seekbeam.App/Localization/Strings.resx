@@ -365,4 +365,5 @@ Index the content of Downloads anyway?</value></data>
   <data name="Set_AliasSpace" xml:space="preserve"><value>The keyword &quot;{0}&quot; contains a space: text after a space is passed as arguments.</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>The alias &quot;{0}&quot; has no target.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>The keyword &quot;{0}&quot; is used by several aliases.</value></data>
+  <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>Queue: {0:N0} files · {1:N0} postponed (drive offline or file locked)</value></data>
 </root>

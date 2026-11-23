@@ -366,4 +366,5 @@ Indicizzare comunque il contenuto di Download?</value></data>
   <data name="Set_AliasSpace" xml:space="preserve"><value>La parola chiave «{0}» contiene uno spazio: il testo dopo uno spazio viene passato come argomento.</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>L&apos;alias «{0}» non ha destinazione.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>La parola chiave «{0}» è usata da più alias.</value></data>
+  <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>Coda: {0:N0} file · {1:N0} rinviati (unità non disponibile o file bloccato)</value></data>
 </root>

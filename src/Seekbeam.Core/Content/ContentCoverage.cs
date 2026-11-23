@@ -14,6 +14,8 @@ public sealed class ContentCoverageReport
     public long Indexed { get; init; }
     public long NoText { get; init; }
     public long Pending { get; init; }
+    /// <summary>Pending files found outside the content queue and handed back to it (see <see cref="ContentCoverage"/>).</summary>
+    public long Requeued { get; init; }
     public long Failed { get; init; }
     public long NotIndexed { get; init; }
     /// <summary>NotIndexed decided by the rules (format, size, settings...), largest first.</summary>
@@ -36,6 +38,11 @@ public sealed class ContentCoverageReport
 /// size, attributes and ancestry come from the catalog. Membership of an excluded folder is decided by walking
 /// <c>parent_id</c> with a per-directory cache (directories are far fewer than files), never by rebuilding paths.
 /// </para>
+/// <para>
+/// Self-repair: a file that is pending but no longer in the content queue (dropped while its drive was offline, or
+/// changed while an event was missed) would wait forever, since only a change of size or date queues it again. When
+/// <c>requeue</c> is given, such files are handed to it, one batch at a time.
+/// </para>
 /// </summary>
 public static class ContentCoverage
 {
@@ -46,19 +53,20 @@ public static class ContentCoverage
     private readonly record struct FileRow(long Id, long ParentId, long RootId, string Name, long Size, long MTime, long Attrs);
 
     public static ContentCoverageReport Compute(CatalogDb catalog, ContentDb content, EntryStore entries, NameIndexer indexer,
-        bool contentIndexerAvailable, IWorkGate gate, CancellationToken ct, int batchSize = DefaultBatchSize) =>
+        bool contentIndexerAvailable, IWorkGate gate, CancellationToken ct, int batchSize = DefaultBatchSize, Action<IReadOnlyList<long>>? requeue = null) =>
         // Snapshot of the rules: the census is consistent even if the settings change meanwhile.
-        Compute(catalog, content, entries, indexer.Scope, indexer.Content, contentIndexerAvailable, gate, ct, batchSize);
+        Compute(catalog, content, entries, indexer.Scope, indexer.Content, contentIndexerAvailable, gate, ct, batchSize, requeue);
 
     public static ContentCoverageReport Compute(CatalogDb catalog, ContentDb content, EntryStore entries, ScopeRules scope, ContentEligibility rules,
-        bool contentIndexerAvailable, IWorkGate gate, CancellationToken ct, int batchSize = DefaultBatchSize)
+        bool contentIndexerAvailable, IWorkGate gate, CancellationToken ct, int batchSize = DefaultBatchSize, Action<IReadOnlyList<long>>? requeue = null)
     {
         var sw = Stopwatch.StartNew();
         var roots = scope.Roots.ToDictionary(r => r.RootId);
         var excludedDirs = rules.HasExcludedFolders ? ExcludedFolderIds(rules, scope, entries) : null;
         var dirCache = new Dictionary<long, bool>();
 
-        long indexed = 0, noText = 0, pending = 0, failed = 0, notIndexed = 0;
+        long indexed = 0, noText = 0, pending = 0, failed = 0, notIndexed = 0, requeued = 0;
+        var lost = new List<long>();
         var byReason = new Dictionary<ContentIneligibility, long>();
         var byStatus = new Dictionary<ContentStatus, long>();
         var exts = new Dictionary<string, long>(StringComparer.Ordinal);
@@ -70,7 +78,7 @@ public static class ContentCoverage
         while (true)
         {
             gate.WaitTurn(WorkClass.Maintenance, ct); // pause, profile and interactive search come first
-            rows.Clear(); queued.Clear(); docs.Clear();
+            rows.Clear(); queued.Clear(); docs.Clear(); lost.Clear();
             var con = catalog.RentReader();
             try
             {
@@ -113,7 +121,11 @@ public static class ContentCoverage
                     {
                         case ContentState.Indexed: indexed++; break;
                         case ContentState.NoText: noText++; break;
-                        case ContentState.Pending: pending++; break;
+                        case ContentState.Pending:
+                            pending++;
+                            // Not queued and in a known location: nothing would ever process it.
+                            if (requeue != null && contentIndexerAvailable && !(qi < queued.Count && queued[qi] == f.Id) && roots.ContainsKey(f.RootId)) lost.Add(f.Id);
+                            break;
                         case ContentState.Failed: failed++; break;
                         default:
                             notIndexed++;
@@ -132,6 +144,7 @@ public static class ContentCoverage
                 }
             }
             finally { if (con != null) catalog.ReturnReader(con); }
+            if (lost.Count > 0) { requeue!(lost); requeued += lost.Count; }
             last = rows[^1].Id;
             gate.Report(WorkClass.Maintenance, rows.Count, 0);
             if (rows.Count < batchSize) break;
@@ -140,7 +153,7 @@ public static class ContentCoverage
         return new ContentCoverageReport
         {
             Files = indexed + noText + pending + failed + notIndexed,
-            Indexed = indexed, NoText = noText, Pending = pending, Failed = failed, NotIndexed = notIndexed,
+            Indexed = indexed, NoText = noText, Pending = pending, Failed = failed, NotIndexed = notIndexed, Requeued = requeued,
             ByReason = byReason.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value)).ToList(),
             ByExtractorStatus = byStatus.OrderByDescending(kv => kv.Value).Select(kv => (kv.Key, kv.Value)).ToList(),
             TopUnsupportedExtensions = exts.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal).Take(5).Select(kv => (kv.Key, kv.Value)).ToList(),

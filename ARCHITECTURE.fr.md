@@ -156,7 +156,7 @@ L'usage est plafonné en dessous de l'écart entre une correspondance exacte et 
 
 ### 7.1 Files persistantes
 - `name_queue` : répertoires à lister (priorités : 0 événement watcher, 1 découverte opportuniste, 2 scan initial, 3 réconciliation). Déduplication par chemin (`UNIQUE`). Ordre FIFO par priorité, ce qui donne un parcours en largeur : les niveaux supérieurs sont indexés d'abord.
-- `content_queue` : entrées à extraire, déduplication par `entry_id`, `attempts` + `not_before` (backoff exponentiel, 3 tentatives max, puis statut `failed` visible au tableau de bord).
+- `content_queue` : entrées à extraire, déduplication par `entry_id`, `attempts` + `not_before` (backoff exponentiel, 3 tentatives max, puis statut `failed` visible au tableau de bord). Quand l'emplacement d'un fichier est inaccessible (lecteur réseau ou disque déconnecté), tous les fichiers en file de cet emplacement sont reportés de 5 minutes en une seule requête, sans compter de tentative, au lieu d'être abandonnés. Le recensement du contenu remet en file les fichiers en attente qu'il trouve hors de la file (au plus une fois par heure), pour que rien ne reste en attente indéfiniment.
 
 ### 7.2 DirectoryScanner (diff par répertoire)
 Pour un répertoire : énumération en streaming (`NtQueryDirectoryFile`, `FileIdFullDirectoryInformation`, tampon 64 Ko) → comparaison avec les enfants connus (`SELECT … WHERE parent_id=?`) → insertions, mises à jour, suppressions (sous-arbres supprimés par lots de 5 000), mise en file des sous-répertoires et des fichiers éligibles au contenu. Plusieurs petits répertoires sont regroupés dans une transaction courte (≤ 2 000 lignes, ≤ 100 ms). Le même mécanisme sert au scan initial, au rescan sur événement et à la réconciliation.

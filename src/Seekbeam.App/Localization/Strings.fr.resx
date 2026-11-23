@@ -365,4 +365,5 @@ Indexer quand même le contenu de Téléchargements ?</value></data>
   <data name="Set_AliasSpace" xml:space="preserve"><value>Le mot-clé « {0} » contient une espace : le texte qui suit une espace est passé en arguments.</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>L&apos;alias « {0} » n&apos;a pas de cible.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>Le mot-clé « {0} » est utilisé par plusieurs alias.</value></data>
+  <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>File : {0:N0} fichiers · {1:N0} reportés (lecteur indisponible ou fichier verrouillé)</value></data>
 </root>

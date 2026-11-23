@@ -156,7 +156,7 @@ Usage is capped below the gap between an exact match and a partial match: histor
 
 ### 7.1 Persistent queues
 - `name_queue`: directories to list (priorities: 0 watcher event, 1 opportunistic discovery, 2 initial scan, 3 reconciliation). Deduplicated by path (`UNIQUE`). FIFO order within a priority, which yields a breadth-first traversal: upper levels are indexed first.
-- `content_queue`: entries to extract, deduplicated by `entry_id`, `attempts` + `not_before` (exponential backoff, at most 3 attempts, then a `failed` status visible in the dashboard).
+- `content_queue`: entries to extract, deduplicated by `entry_id`, `attempts` + `not_before` (exponential backoff, at most 3 attempts, then a `failed` status visible in the dashboard). When the location of a file cannot be reached (network drive or disk disconnected), every queued file of that location is postponed by 5 minutes in one statement, without counting an attempt, instead of being dropped. The content census hands back to the queue the pending files it finds outside it (at most once an hour), so that nothing stays pending forever.
 
 ### 7.2 DirectoryScanner (per-directory diff)
 For one directory: streaming enumeration (`NtQueryDirectoryFile`, `FileIdFullDirectoryInformation`, 64 KB buffer) → comparison with the known children (`SELECT … WHERE parent_id=?`) → insertions, updates, deletions (deleted subtrees in batches of 5,000), queuing of subdirectories and of files eligible for content. Several small directories are grouped into one short transaction (≤ 2,000 rows, ≤ 100 ms). The same mechanism serves the initial scan, event-driven rescans and reconciliation.

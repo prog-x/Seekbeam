@@ -203,7 +203,13 @@ public sealed class ContentIndexer : IDisposable
         var indexer = _indexer();
         var root = info == null ? null : indexer.Scope.ById(info.RootId);
         if (info == null || path == null || root == null || info.IsDirectory) { _content.Delete(it.EntryId); Remove(it.EntryId); return; }
-        if (!SourceFileAccess.TryGetMetadata(path, out var md)) { Remove(it.EntryId); return; } // vanished: the scanner will delete it
+        if (!SourceFileAccess.TryGetMetadata(path, out var md))
+        {
+            // Offline drive or share: the file is not gone, keep it queued until its location is back.
+            if (DeferIfRootUnreachable(root)) return;
+            Remove(it.EntryId); // vanished: the scanner will delete it
+            return;
+        }
         if (!indexer.Content.IsEligible(root, path, md.Size, md.Attributes))
         {
             _content.Delete(it.EntryId);
@@ -238,6 +244,8 @@ public sealed class ContentIndexer : IDisposable
         Interlocked.Add(ref _bytes, md.Size);
         _gate.Report(WorkClass.Content, 1, md.Size);
         UpdateRate();
+        // A read error because the drive or share went away mid-extraction is not a failure of the document.
+        if (reply.Status is not (ExtractStatus.Ok or ExtractStatus.Empty) && DeferIfRootUnreachable(root)) return;
         switch (reply.Status)
         {
             case ExtractStatus.Ok or ExtractStatus.Empty:
@@ -276,6 +284,47 @@ public sealed class ContentIndexer : IDisposable
         }
     }
 
+    /// <summary>Delay before an unreachable location is tried again.</summary>
+    internal static TimeSpan UnreachableRetryDelay = TimeSpan.FromMinutes(5);
+    private readonly Dictionary<long, (long Ticks, bool Reachable)> _rootReachable = [];
+
+    /// <summary>
+    /// If the location of <paramref name="root"/> cannot be reached (disconnected network drive, unplugged disk), postpones
+    /// every queued file of that location in one statement (attempts unchanged: the files are not at fault) and returns
+    /// true. The answer is cached for a few seconds, since probing an offline share can block for seconds.
+    /// </summary>
+    private bool DeferIfRootUnreachable(RootScope root)
+    {
+        long now = Environment.TickCount64;
+        bool reachable;
+        lock (_rootReachable)
+            if (_rootReachable.TryGetValue(root.RootId, out var c) && now - c.Ticks < 10_000) reachable = c.Reachable;
+            else
+            {
+                reachable = SourceFileAccess.DirectoryExists(root.Path);
+                _rootReachable[root.RootId] = (now, reachable);
+            }
+        if (reachable) return false;
+        DeferRoot(root.RootId, DateTime.UtcNow.Add(UnreachableRetryDelay));
+        return true;
+    }
+
+    private void DeferRoot(long rootId, DateTime notBefore)
+    {
+        int n;
+        lock (_db.WriteLock)
+        {
+            using var cmd = _db.Writer.CreateCommand();
+            cmd.CommandText = "UPDATE content_queue SET not_before=$nb WHERE not_before < $nb - $slack AND op=0 AND entry_id IN (SELECT id FROM entries WHERE root_id=$r)";
+            cmd.Parameters.AddWithValue("$nb", notBefore.Ticks);
+            cmd.Parameters.AddWithValue("$slack", TimeSpan.FromMinutes(1).Ticks); // in-flight items of the same batch: no rewrite
+            cmd.Parameters.AddWithValue("$r", rootId);
+            n = cmd.ExecuteNonQuery();
+        }
+        Interlocked.Exchange(ref _countTicks, 0);
+        if (n > 0) Log.Warn("Content", $"Location {rootId} unreachable: {n} queued files postponed until {notBefore:HH:mm} UTC");
+    }
+
     private void UpdateRate()
     {
         _rateCount++;
@@ -304,6 +353,24 @@ public sealed class ContentIndexer : IDisposable
             cmd.Parameters.AddWithValue("$id", it.EntryId);
             cmd.ExecuteNonQuery();
         }
+    }
+
+    /// <summary>Queues the given files (pending files found outside the queue); already queued ones are left as they are.</summary>
+    public void Requeue(IReadOnlyList<long> entryIds)
+    {
+        if (entryIds.Count == 0) return;
+        lock (_db.WriteLock)
+        {
+            using var tx = _db.Writer.BeginTransaction();
+            using var cmd = _db.Writer.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "INSERT OR IGNORE INTO content_queue(entry_id,priority,op,seq,attempts,not_before) VALUES($id,$pr,0,$id,0,0)";
+            var id = cmd.Parameters.Add("$id", Microsoft.Data.Sqlite.SqliteType.Integer);
+            cmd.Parameters.AddWithValue("$pr", (int)QueuePriority.Reconcile);
+            foreach (long e in entryIds) { id.Value = e; cmd.ExecuteNonQuery(); }
+            tx.Commit();
+        }
+        Wake();
     }
 
     /// <summary>Queues every file of the catalog for content (re)indexing (eligibility re-checked by the worker).</summary>
