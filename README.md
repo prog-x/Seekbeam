@@ -8,7 +8,7 @@ Seekbeam is a fast local search tool, application launcher and document indexer 
 
 ## Quick start
 
-1. **Install** with `Seekbeam-1.0.0-x64.msi` (per user, no administrator rights), or unzip `Seekbeam-1.0.0-x64-portable.zip` and run `Seekbeam.exe`.
+1. **Install** with `Seekbeam-1.1.0-x64.msi` (per user, no administrator rights), or unzip `Seekbeam-1.1.0-x64-portable.zip` and run `Seekbeam.exe`.
 2. **Press Ctrl twice** to open the search window.
 3. **Type** a few letters from any part of the name, in any order.
 4. **Press Enter** to open the file or launch the app.
@@ -35,8 +35,8 @@ Seekbeam is a fast local search tool, application launcher and document indexer 
 
 ## Installation
 
-- **MSI** (per user, no administrator rights): `Seekbeam-1.0.0-x64.msi`.
-- **Portable**: unzip `Seekbeam-1.0.0-x64-portable.zip` and run `Seekbeam.exe`. Data is stored in `Data\` next to the executable.
+- **MSI** (per user, no administrator rights): `Seekbeam-1.1.0-x64.msi`.
+- **Portable**: unzip `Seekbeam-1.1.0-x64-portable.zip` and run `Seekbeam.exe`. Data is stored in `Data\` next to the executable.
 
 Details: [docs/INSTALLATION.md](docs/INSTALLATION.md). User guide: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 

@@ -8,7 +8,7 @@ Recherche locale ultra-rapide, lanceur d'applications et indexation documentaire
 
 ## Démarrage rapide
 
-1. **Installer** `Seekbeam-1.0.0-x64.msi` (par utilisateur, sans droits administrateur), ou décompresser `Seekbeam-1.0.0-x64-portable.zip` et lancer `Seekbeam.exe`.
+1. **Installer** `Seekbeam-1.1.0-x64.msi` (par utilisateur, sans droits administrateur), ou décompresser `Seekbeam-1.1.0-x64-portable.zip` et lancer `Seekbeam.exe`.
 2. **Appuyer deux fois sur Ctrl** pour ouvrir la recherche.
 3. **Taper** quelques lettres de n'importe quelle partie du nom, dans n'importe quel ordre.
 4. **Entrée** ouvre le fichier ou lance l'application.
@@ -35,8 +35,8 @@ Recherche locale ultra-rapide, lanceur d'applications et indexation documentaire
 
 ## Installation
 
-- **MSI** (par utilisateur, sans droits administrateur) : `Seekbeam-1.0.0-x64.msi`.
-- **Portable** : décompresser `Seekbeam-1.0.0-x64-portable.zip` et lancer `Seekbeam.exe` (les données sont stockées dans `Data\` à côté de l'exécutable).
+- **MSI** (par utilisateur, sans droits administrateur) : `Seekbeam-1.1.0-x64.msi`.
+- **Portable** : décompresser `Seekbeam-1.1.0-x64-portable.zip` et lancer `Seekbeam.exe` (les données sont stockées dans `Data\` à côté de l'exécutable).
 
 Détails : [docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md). Guide utilisateur : [docs/USER_GUIDE.fr.md](docs/USER_GUIDE.fr.md).
 

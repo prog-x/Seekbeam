@@ -2,7 +2,7 @@
 
 # Seekbeam — Roadmap
 
-Planned work after version 1.0.0. Items are not scheduled; order within a section reflects priority.
+Planned work after version 1.1.0. Items are not scheduled; order within a section reflects priority.
 
 ## 1. User interface localization — done (unreleased)
 

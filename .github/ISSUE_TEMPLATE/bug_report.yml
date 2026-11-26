@@ -12,7 +12,7 @@ body:
     attributes:
       label: Seekbeam version
       description: First line of the log (Dashboard › Open logs), or Properties › Details of Seekbeam.exe.
-      placeholder: "1.0.0"
+      placeholder: "1.1.0"
     validations:
       required: true
   - type: dropdown

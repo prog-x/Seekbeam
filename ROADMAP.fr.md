@@ -2,7 +2,7 @@
 
 # Seekbeam — Feuille de route
 
-Travaux prévus après la version 1.0.0. Les éléments ne sont pas planifiés ; dans chaque section, l'ordre reflète la priorité.
+Travaux prévus après la version 1.1.0. Les éléments ne sont pas planifiés ; dans chaque section, l'ordre reflète la priorité.
 
 ## 1. Localisation de l'interface — réalisée (non publiée)
 

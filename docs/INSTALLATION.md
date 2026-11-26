@@ -6,15 +6,15 @@
 Windows 10 (1809+) or Windows 11, x64. You don't need to install a runtime: the packages are *self-contained* (.NET 10 included).
 
 ## MSI (recommended)
-- **Install location**: `Seekbeam-1.0.0-x64.msi` installs Seekbeam **for the current user, without elevation**, in `%LOCALAPPDATA%\Programs\Seekbeam`.
+- **Install location**: `Seekbeam-1.1.0-x64.msi` installs Seekbeam **for the current user, without elevation**, in `%LOCALAPPDATA%\Programs\Seekbeam`.
 - **What it adds**: two Start menu shortcuts (Seekbeam, and Seekbeam — Advanced search), plus automatic startup (`HKCU\…\Run\Seekbeam`).
 - **After installing**: in interactive mode, Seekbeam starts at the end of the installation.
-- **Silent install**: `msiexec /i Seekbeam-1.0.0-x64.msi /qn`. Uninstall: `msiexec /x Seekbeam-1.0.0-x64.msi /qn`.
+- **Silent install**: `msiexec /i Seekbeam-1.1.0-x64.msi /qn`. Uninstall: `msiexec /x Seekbeam-1.1.0-x64.msi /qn`.
 - **Update**: install the new version (MajorUpgrade). The configuration and indexes are kept, and the schema is migrated automatically.
 - **Uninstall**: removes the binaries, shortcuts and automatic startup. Your data (`%LOCALAPPDATA%\Seekbeam`) and the extractor sandbox profile are deliberately kept. To delete them, run `Seekbeam.exe --purge-data` before uninstalling.
 
 ## Portable
-Unzip `Seekbeam-1.0.0-x64-portable.zip` anywhere and run `Seekbeam.exe`.
+Unzip `Seekbeam-1.1.0-x64-portable.zip` anywhere and run `Seekbeam.exe`.
 
 The `portable.txt` file enables portable mode: data goes to `Data\` next to the executable, and there is no automatic startup. The only thing Seekbeam leaves outside its folder is the extractor sandbox profile (TD-17): Windows creates `%LOCALAPPDATA%\Packages\seekbeam.extractorhost` and a registry entry under `HKCU\Software\Classes\Local Settings`. `Seekbeam.exe --purge-data` removes them along with the data.
 

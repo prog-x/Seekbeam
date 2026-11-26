@@ -9,7 +9,7 @@ public static class AppInfo
 
     private static readonly Assembly Asm = typeof(AppInfo).Assembly;
 
-    /// <summary>"1.0.0" (from &lt;Version&gt;).</summary>
+    /// <summary>"1.1.0" (from &lt;Version&gt;).</summary>
     public static string Version { get; } = Asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is { } iv
         ? iv.Split('+')[0]
         : Asm.GetName().Version?.ToString(3) ?? "?";
@@ -22,7 +22,7 @@ public static class AppInfo
 
     public static string Copyright { get; } = Asm.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ?? "";
 
-    /// <summary>"1.0.0" or "1.0.0 (abc1234)".</summary>
+    /// <summary>"1.1.0" or "1.1.0 (abc1234)".</summary>
     public static string DisplayVersion => Commit is null ? Version : $"{Version} ({Commit})";
 
     /// <summary>A file of the repository (LICENSE, notices). A copy of both is also shipped next to Seekbeam.exe.</summary>

@@ -5,7 +5,7 @@
 _Mis à jour : 2026-11-21_
 
 ## Phase actuelle
-Version 1.0.0 terminée : fonctionnelle, testée, mesurée, documentée et installable. Voir le rapport final dans `docs/FINAL_REPORT.md`.
+Version 1.1.0 terminée : fonctionnelle, testée, mesurée, documentée et installable. Voir le rapport final dans `docs/FINAL_REPORT.md`.
 
 ## Terminé (toutes les phases d'IMPLEMENTATION_PLAN)
 | Phase | Statut | Preuve |

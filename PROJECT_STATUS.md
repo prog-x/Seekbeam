@@ -5,7 +5,7 @@
 _Updated: 2026-11-21_
 
 ## Current phase
-Version 1.0.0 complete: functional, tested, measured, documented and installable. See the final report in `docs/FINAL_REPORT.md`.
+Version 1.1.0 complete: functional, tested, measured, documented and installable. See the final report in `docs/FINAL_REPORT.md`.
 
 ## Done (every IMPLEMENTATION_PLAN phase)
 | Phase | Status | Evidence |
