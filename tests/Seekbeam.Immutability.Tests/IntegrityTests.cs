@@ -41,6 +41,9 @@ public sealed class IntegrityTests(ITestOutputHelper output) : IDisposable
         c.Content.TimeoutSeconds = 20;
         c.Search.IncludeHidden = true;
         c.Search.IncludeSystem = true;
+        // These scenarios are about the indexed location. The folder index (a walk of the whole machine) has its own
+        // integrity test (FolderIndexAndPathCompletionModifyNothing), on a tree of its own.
+        c.FolderIndex.Enabled = false;
     }
 
     private void AssertUnchanged(Dictionary<string, SnapshotEntry> before, Dictionary<string, SnapshotEntry> after, ISet<string>? ignore = null)

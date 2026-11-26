@@ -647,7 +647,7 @@ public sealed class NameIndexer : IDisposable
     }
 
     /// <summary>Rows per transaction when a large tree is deleted (CLAUDE.md §13: small batches, short transactions).</summary>
-    internal const int DeleteChunk = 20_000;
+    internal static int DeleteChunk { get; set; } = 20_000;
 
     /// <summary>
     /// Removes a root and every entry of it, a bounded number of rows per transaction (a folder-index root can be a whole

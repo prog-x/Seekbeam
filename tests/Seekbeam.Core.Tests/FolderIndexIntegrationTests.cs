@@ -235,16 +235,21 @@ public sealed class FolderIndexIntegrationTests : IDisposable
     public void RemovingTheFolderIndexDeletesInSmallTransactions()
     {
         // More folders than one delete batch: everything goes, in several short transactions, nothing left behind.
-        for (int i = 0; i < Engine_DeleteChunk + 500; i++) Directory.CreateDirectory(D($@"Bulk\{i / 100:D3}\{i:D5}"));
-        StartEngine();
-        Assert.True(_engine!.Stats().FolderIndexFolders > Engine_DeleteChunk);
-        _engine.Config.Update(c => c.FolderIndex.Enabled = false);
-        Assert.True(WaitFor(() => { WaitIdle(); return _engine.Stats().FolderIndexFolders == 0; }, 60_000));
-        Assert.Equal(0L, CatalogDb.Scalar<long>(_engine.Catalog.Writer, "SELECT COUNT(*) FROM roots WHERE kind=1"));
-        Assert.Contains(Path.Combine(_home, @"Projets\Alpha\notes.txt"), Launch("notes"));
+        // The batch is made small so that the test stays quick on a CI runner (the logic is the same at 20,000).
+        int saved = Seekbeam.Core.Indexing.NameIndexer.DeleteChunk;
+        Seekbeam.Core.Indexing.NameIndexer.DeleteChunk = 100;
+        try
+        {
+            for (int i = 0; i < 450; i++) Directory.CreateDirectory(D($@"Bulk\{i / 50:D2}\{i:D4}"));
+            StartEngine();
+            Assert.True(_engine!.Stats().FolderIndexFolders > 450);
+            _engine.Config.Update(c => c.FolderIndex.Enabled = false);
+            Assert.True(WaitFor(() => { WaitIdle(); return _engine.Stats().FolderIndexFolders == 0; }, 60_000));
+            Assert.Equal(0L, CatalogDb.Scalar<long>(_engine.Catalog.Writer, "SELECT COUNT(*) FROM roots WHERE kind=1"));
+            Assert.Contains(Path.Combine(_home, @"Projets\Alpha\notes.txt"), Launch("notes"));
+        }
+        finally { Seekbeam.Core.Indexing.NameIndexer.DeleteChunk = saved; }
     }
-
-    private const int Engine_DeleteChunk = Seekbeam.Core.Indexing.NameIndexer.DeleteChunk;
 
     [Fact]
     public void CatalogV2IsMigrated()
