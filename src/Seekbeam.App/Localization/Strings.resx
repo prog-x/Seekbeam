@@ -366,4 +366,50 @@ Index the content of Downloads anyway?</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>The alias &quot;{0}&quot; has no target.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>The keyword &quot;{0}&quot; is used by several aliases.</value></data>
   <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>Queue: {0:N0} files · {1:N0} postponed (drive offline or file locked)</value></data>
+  <data name="Launcher_HintDialog" xml:space="preserve"><value>Go to a folder: bits of its path (proj client), or C:\…</value></data>
+  <data name="Launcher_HintExplorer" xml:space="preserve"><value>Go to a folder in this window: bits of its path, or C:\…</value></data>
+  <data name="Launcher_KeysDialog" xml:space="preserve"><value>↵ go to · Ctrl+G last Explorer folder · Ctrl+↵ open in Explorer · Esc back</value></data>
+  <data name="Launcher_KeysNavigate" xml:space="preserve"><value>↵ go to · Ctrl+↵ open in Explorer · Esc back</value></data>
+  <data name="Launcher_NavLocations" xml:space="preserve"><value>Open Explorer folders, favorite and recent folders · type to search</value></data>
+  <data name="Launcher_NavNoLocation" xml:space="preserve"><value>Type bits of a folder path, or an absolute path (C:\…, \\server\…)</value></data>
+  <data name="NavTarget_FileOpen" xml:space="preserve"><value>Go to folder · Open dialog</value></data>
+  <data name="NavTarget_FileSave" xml:space="preserve"><value>Go to folder · Save dialog (the file name you typed is kept)</value></data>
+  <data name="NavTarget_FolderPicker" xml:space="preserve"><value>Go to folder · folder picker</value></data>
+  <data name="NavTarget_LegacyFolderBrowser" xml:space="preserve"><value>Old-style folder dialog: the chosen path will be copied to the clipboard</value></data>
+  <data name="NavTarget_Explorer" xml:space="preserve"><value>Go to folder · this Explorer window</value></data>
+  <data name="Nav_NoExplorer" xml:space="preserve"><value>No Explorer window is open.</value></data>
+  <data name="Nav_TargetGone" xml:space="preserve"><value>The window was closed in the meantime.</value></data>
+  <data name="Nav_FolderMissing" xml:space="preserve"><value>This folder no longer exists: {0}</value></data>
+  <data name="Nav_BlockedCopied" xml:space="preserve"><value>This window belongs to an application running as administrator: Seekbeam cannot drive it. Path copied, paste it with Ctrl+V: {0}</value></data>
+  <data name="Nav_UnsupportedCopied" xml:space="preserve"><value>This dialog cannot be driven. Path copied, paste it with Ctrl+V: {0}</value></data>
+  <data name="Origin_FolderIndex" xml:space="preserve"><value>Folder · outside the index</value></data>
+  <data name="Origin_Disk" xml:space="preserve"><value>Folder · on disk</value></data>
+  <data name="Origin_Explorer" xml:space="preserve"><value>Open in Explorer</value></data>
+  <data name="Origin_Recent" xml:space="preserve"><value>Recent folder</value></data>
+  <data name="Origin_Favorite" xml:space="preserve"><value>Favorite folder</value></data>
+  <data name="Tab_Navigation" xml:space="preserve"><value>Dialogs &amp; folders</value></data>
+  <data name="Set_NavGroup" xml:space="preserve"><value>Open / Save dialogs and Explorer</value></data>
+  <data name="Set_NavDialogs" xml:space="preserve"><value>Ctrl twice in an Open, Save or folder dialog: go to a folder in that dialog</value></data>
+  <data name="Set_NavTyping" xml:space="preserve"><value>Typing in the file list of a dialog opens Seekbeam (Esc gives the letters back to the list)</value></data>
+  <data name="Set_NavTypingTip" xml:space="preserve"><value>Replaces the list's own "jump to the name starting with these letters". Text boxes (file name, address, search) are never affected.</value></data>
+  <data name="Set_NavQuickSwitch" xml:space="preserve"><value>Quick Switch: Ctrl+G jumps to the folder of the last Explorer window; open Explorer folders are suggested</value></data>
+  <data name="Set_NavExplorer" xml:space="preserve"><value>Ctrl twice in an Explorer window: go to a folder in that window</value></data>
+  <data name="Set_NavRecent" xml:space="preserve"><value>Suggest favorite and recent folders when nothing is typed</value></data>
+  <data name="Set_NavPathCompletion" xml:space="preserve"><value>Complete a typed absolute path from the disk (C:\Win…, \\server\…, %APPDATA%\…)</value></data>
+  <data name="Set_NavNote" xml:space="preserve"><value>Seekbeam only navigates: it never validates a dialog, so it never opens or saves a file by itself. Dialogs of applications running as administrator and the old folder tree dialog cannot be driven: the path is then copied to the clipboard.</value></data>
+  <data name="Set_FiGroup" xml:space="preserve"><value>Folders outside the indexed locations</value></data>
+  <data name="Set_FiEnabled" xml:space="preserve"><value>Index the names of folders outside the indexed locations (folders only: no files, no content)</value></data>
+  <data name="Set_FiDrives" xml:space="preserve"><value>Every fixed local drive</value></data>
+  <data name="Set_FiLearn" xml:space="preserve"><value>Folders used outside the index (network shares, removable drives), with a few levels below</value></data>
+  <data name="Set_FiDepth" xml:space="preserve"><value>Maximum depth</value></data>
+  <data name="Set_FiExcludes" xml:space="preserve"><value>Excluded folders (names or patterns, one per line)</value></data>
+  <data name="Set_FiExcludedPaths" xml:space="preserve"><value>Excluded absolute folders (one per line, %VARIABLES% allowed)</value></data>
+  <data name="Set_FiLower" xml:space="preserve"><value>Folders ranked lower (absolute folders or folder names)</value></data>
+  <data name="Set_FiForget" xml:space="preserve"><value>Forget the learned folders</value></data>
+  <data name="Set_FiForgotten" xml:space="preserve"><value>Learned folders forgotten.</value></data>
+  <data name="Set_FiStatus" xml:space="preserve"><value>{0:N0} folders outside the locations · last full walk: {1}</value></data>
+  <data name="Set_FiNever" xml:space="preserve"><value>not yet</value></data>
+  <data name="Set_FiNote" xml:space="preserve"><value>Only folder listings are read, at the lowest priority, after the indexed locations; new folders are followed as they appear. Nothing is ever written there.</value></data>
+  <data name="Dash_FolderIndex" xml:space="preserve"><value>Folder index (outside the locations): {0:N0} folders · last walk {1}</value></data>
+  <data name="Nav_TimeoutCopied" xml:space="preserve"><value>The dialog did not go to the folder in time (slow location?). Path copied, paste it with Ctrl+V: {0}</value></data>
 </root>

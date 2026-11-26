@@ -7,8 +7,22 @@ namespace Seekbeam.Core.Search;
 /// <summary>One scored candidate from the name index.</summary>
 public readonly record struct NameCandidate(int Id, int Score, byte Flags, int Errors);
 
+/// <summary>How folders of the folder index (outside the indexed locations, TD-21) take part in a search.</summary>
+public enum OutsideMode
+{
+    /// <summary>Never shown (advanced search, content census…).</summary>
+    Exclude,
+    /// <summary>Launcher: shown only after every result of the indexed locations (they fill the remaining rows).</summary>
+    Fallback,
+    /// <summary>"Go to folder" mode and kind:folder: ranked with the others.</summary>
+    Include,
+}
+
 public sealed class NameSearchOptions
 {
+    public OutsideMode Outside { get; init; } = OutsideMode.Exclude;
+    /// <summary>Folders before files ("go to folder" mode of the dialogs).</summary>
+    public bool FoldersFirst { get; init; }
     public bool MatchInPath { get; init; } = true;
     public bool IncludeHidden { get; init; }
     public bool IncludeSystem { get; init; }
@@ -36,8 +50,14 @@ public static class NameSearcher
         public readonly ushort[] Mask = new ushort[BlockSize];
         public readonly Dictionary<int, (uint Mask, int Depth)> Memo = new();
         public readonly PriorityQueue<NameCandidate, (int, int)> Heap = new();
-        public int Matches;
+        public readonly Dictionary<int, uint> ChainMemo = new();
+        public int Matches, InsideMatches;
     }
+
+    /// <summary>Score added to folders when <see cref="NameSearchOptions.FoldersFirst"/>: above any text difference.</summary>
+    public const int FoldersFirstBonus = 5_000;
+    /// <summary>Score removed from folder-index results in <see cref="OutsideMode.Fallback"/>: below every other result.</summary>
+    public const int FallbackPenalty = 1_000_000;
 
     public sealed class Outcome
     {
@@ -52,12 +72,15 @@ public static class NameSearcher
         int heapCap = Math.Max(k * 4, 64);
         var exact = Run(snap, q, heapCap, opt, fuzzy: false, ct);
         bool fuzzyEligible = opt.AllowFuzzy && q.Tokens.Any(t => BitapPattern.ErrorsFor(t, opt.FuzzyMinTokenLength) > 0);
-        if (exact.TotalMatches >= opt.FuzzyThreshold || !fuzzyEligible)
-            return Finalize(snap, exact.Top, exact.TotalMatches, false, k, opt);
+        // In fallback mode, folders of the folder index do not count: they must not prevent the approximate pass over the
+        // indexed locations (an approximate match there is still more relevant than a folder of Program Files).
+        int decisive = opt.Outside == OutsideMode.Fallback ? exact.InsideMatches : exact.TotalMatches;
+        if (decisive >= opt.FuzzyThreshold || !fuzzyEligible)
+            return Finalize(snap, q, exact.Top, exact.TotalMatches, false, k, opt);
         var fz = Run(snap, q, heapCap, opt, fuzzy: true, ct);
         // Fuzzy results include exact ones (0 errors); keep the best score per id.
         var merged = exact.Top.Concat(fz.Top).GroupBy(c => c.Id).Select(g => g.MaxBy(c => c.Score)).ToList();
-        return Finalize(snap, merged, Math.Max(exact.TotalMatches, fz.TotalMatches), fz.TotalMatches > exact.TotalMatches, k, opt);
+        return Finalize(snap, q, merged, Math.Max(exact.TotalMatches, fz.TotalMatches), fz.TotalMatches > exact.TotalMatches, k, opt);
     }
 
     private static List<Block> Blocks(NameIndexSnapshot snap)
@@ -69,17 +92,21 @@ public static class NameSearcher
         return blocks;
     }
 
-    private static Outcome Finalize(NameIndexSnapshot snap, List<NameCandidate> cands, int total, bool fuzzy, int k, NameSearchOptions opt)
+    private static Outcome Finalize(NameIndexSnapshot snap, ParsedQuery q, List<NameCandidate> cands, int total, bool fuzzy, int k, NameSearchOptions opt)
     {
-        // Refinement on the short list: depth penalty (needs parent walk) and stable ordering.
+        // Refinement on the short list: depth penalty and path-order bonuses (both need the parent walk), stable ordering.
         var memo = new Dictionary<int, (uint, int)>();
         var refined = new List<NameCandidate>(cands.Count);
+        var segments = new List<(int Id, int Ord, RecordSource Src)>(32);
         foreach (var c in cands)
         {
-            int depth = 0;
+            int depth = 0, bonus = 0;
             if (snap.TryFind(c.Id, out var src, out int ord))
+            {
                 depth = AncestorInfo(snap, src.Parents[ord], [], memo).Depth;
-            refined.Add(c with { Score = c.Score - opt.Weights.DepthPenalty * Math.Min(depth, 30) });
+                if (q.Tokens.Count > 1 && opt.MatchInPath) bonus = PathOrderBonus(snap, src, ord, q, opt.Weights, segments);
+            }
+            refined.Add(c with { Score = c.Score + bonus - opt.Weights.DepthPenalty * Math.Min(depth, 30) });
         }
         refined.Sort((a, b) => b.Score != a.Score ? b.Score.CompareTo(a.Score) : a.Id.CompareTo(b.Id));
         if (refined.Count > k) refined.RemoveRange(k, refined.Count - k);
@@ -140,10 +167,10 @@ public static class NameSearcher
         return t;
     }
 
-    private static (List<NameCandidate> Top, int TotalMatches) Run(NameIndexSnapshot snap, ParsedQuery q, int heapCap, NameSearchOptions opt, bool fuzzy, CancellationToken ct)
+    private static (List<NameCandidate> Top, int TotalMatches, int InsideMatches) Run(NameIndexSnapshot snap, ParsedQuery q, int heapCap, NameSearchOptions opt, bool fuzzy, CancellationToken ct)
     {
         var terms = BuildTerms(q, opt, fuzzy);
-        if (fuzzy && terms.FuzzyPieces == null) return ([], 0);
+        if (fuzzy && terms.FuzzyPieces == null) return ([], 0, 0);
         var blocks = Blocks(snap);
         // A token missing from a name can only be satisfied by an ancestor if it occurs in some directory name:
         // checked once per query on the small directory-name sidecars (≈8 % of the text).
@@ -165,15 +192,15 @@ public static class NameSearcher
             },
             w => workers.Add(w));
         var all = new List<NameCandidate>();
-        int total = 0;
+        int total = 0, inside = 0;
         foreach (var w in workers)
         {
-            total += w.Matches;
+            total += w.Matches; inside += w.InsideMatches;
             while (w.Heap.Count > 0) all.Add(w.Heap.Dequeue());
         }
         all.Sort((a, b) => b.Score != a.Score ? b.Score.CompareTo(a.Score) : a.Id.CompareTo(b.Id));
         if (all.Count > heapCap) all.RemoveRange(heapCap, all.Count - heapCap);
-        return (all, total);
+        return (all, total, inside);
     }
 
     private const ushort FuzzyCandidateBit = 1 << 15;
@@ -219,6 +246,8 @@ public static class NameSearcher
             int i = b.Lo + r;
             if (src.IsStale(i)) continue;
             var f = (EntryFlags)flags[i];
+            bool outside = (f & EntryFlags.Outside) != 0;
+            if (outside && opt.Outside == OutsideMode.Exclude) continue;
             bool isDir = (f & EntryFlags.Directory) != 0;
             if (q.Kind == KindFilter.File && isDir) continue;
             if (q.Kind == KindFilter.Folder && !isDir) continue;
@@ -230,6 +259,7 @@ public static class NameSearcher
 
             int errors = 0;
             uint nameMask;
+            if (fuzzy && (f & EntryFlags.Root) != 0) continue; // a root name is a whole path: approximate matches there are noise
             if (fuzzy)
             {
                 nameMask = 0;
@@ -268,11 +298,22 @@ public static class NameSearcher
                 }
             }
             else if (nameMask != terms.TokenMask) continue;
+            // "src\seek": every chain must appear segment after segment, from the root down to this record.
+            if (q.Chains.Count > 0 && !fuzzy)
+            {
+                bool isRoot = (f & EntryFlags.Root) != 0;
+                uint st = isRoot ? 0 : ChainState(snap, parents[i], q, w.ChainMemo);
+                if (!ChainsComplete(Advance(st, name, q, isRoot), q)) continue;
+            }
 
             w.Matches++;
+            if (!outside) w.InsideMatches++;
             int score = Ranking.TextScore(name, isDir, q, nameMask, weights, errors);
             int id = ids[i];
             score += opt.Usage.Get(id);
+            if (outside) score -= weights.OutsidePenalty + (opt.Outside == OutsideMode.Fallback ? FallbackPenalty : 0);
+            if ((f & EntryFlags.Lowered) != 0) score -= weights.LoweredPenalty;
+            if (opt.FoldersFirst && isDir && errors == 0) score += FoldersFirstBonus; // an approximate folder never passes an exact file
             var cand = new NameCandidate(id, score, flags[i], errors);
             if (w.Heap.Count < heapCap) w.Heap.Enqueue(cand, (score, -id));
             else if (w.Heap.TryPeek(out _, out var min) && (score, -id).CompareTo(min) > 0) w.Heap.EnqueueDequeue(cand, (score, -id));
@@ -318,6 +359,150 @@ public static class NameSearcher
         var ext = name[(dot + 1)..];
         foreach (var e in exts) if (ext.SequenceEqual(e)) return true;
         return false;
+    }
+
+    // ------------------------------------------------------------------ path fragments
+
+    /// <summary>
+    /// Progress of every chain of the query (8 bits per chain: how many of its tokens are matched) along the path from the
+    /// root down to <paramref name="dirId"/> included. Greedy, one token per path segment at most, which is optimal for an
+    /// ordered subsequence. Memoised per directory, like <see cref="AncestorInfo"/>.
+    /// </summary>
+    private static uint ChainState(NameIndexSnapshot snap, int dirId, ParsedQuery q, Dictionary<int, uint> memo)
+    {
+        if (dirId == 0) return 0;
+        if (memo.TryGetValue(dirId, out var hit)) return hit;
+        Span<int> chain = stackalloc int[128];
+        int len = 0, cur = dirId;
+        uint st = 0;
+        while (cur != 0 && len < 128)
+        {
+            if (memo.TryGetValue(cur, out var m)) { st = m; break; }
+            chain[len++] = cur;
+            cur = snap.TryFind(cur, out var src, out int ord) ? src.Parents[ord] : 0;
+        }
+        for (int i = len - 1; i >= 0; i--)
+        {
+            if (snap.TryFind(chain[i], out var src, out int ord))
+                st = Advance(st, src.NameAt(ord), q, (src.Flags[ord] & (byte)EntryFlags.Root) != 0);
+            memo[chain[i]] = st;
+        }
+        return st;
+    }
+
+    /// <summary>Advances the chains over one entry name. A root's name is a whole path: each of its segments counts.</summary>
+    private static uint Advance(uint st, ReadOnlySpan<byte> name, ParsedQuery q, bool isRoot)
+    {
+        if (!isRoot) return AdvanceSegment(st, name, q);
+        while (name.Length > 0)
+        {
+            int sep = name.IndexOf((byte)'\\');
+            var seg = sep < 0 ? name : name[..sep];
+            if (seg.Length > 0) st = AdvanceSegment(st, seg, q);
+            if (sep < 0) break;
+            name = name[(sep + 1)..];
+        }
+        return st;
+    }
+
+    private static uint AdvanceSegment(uint st, ReadOnlySpan<byte> seg, ParsedQuery q)
+    {
+        for (int c = 0; c < q.Chains.Count; c++)
+        {
+            var chain = q.Chains[c];
+            int p = (int)((st >> (c * 8)) & 0xFF);
+            if (p < chain.Length && seg.IndexOf(q.Tokens[chain[p]]) >= 0) st += 1u << (c * 8);
+        }
+        return st;
+    }
+
+    private static bool ChainsComplete(uint st, ParsedQuery q)
+    {
+        for (int c = 0; c < q.Chains.Count; c++)
+            if (((st >> (c * 8)) & 0xFF) < q.Chains[c].Length) return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Bonuses for path fragments ("sou per see" for C:\source\perso\Seekbeam), computed on the short list: the tokens appear
+    /// along the path in the order typed (<see cref="RankingWeights.PathInOrder"/>), each one at the start of a folder name
+    /// (<see cref="RankingWeights.PathWordStart"/>), and the last token names the item itself (<see cref="RankingWeights.LastTokenInName"/>),
+    /// so that the folder the user is heading for comes before the files and folders it contains.
+    /// </summary>
+    private static int PathOrderBonus(NameIndexSnapshot snap, RecordSource src, int ord, ParsedQuery q, RankingWeights w,
+        List<(int Id, int Ord, RecordSource Src)> segments)
+    {
+        // Segments from the root down to the item (a root contributes the segments of its path).
+        segments.Clear();
+        int cur = src.Ids[ord];
+        RecordSource s = src; int o = ord;
+        for (int guard = 0; guard < 128; guard++)
+        {
+            segments.Add((cur, o, s));
+            int parent = s.Parents[o];
+            if (parent == 0 || !snap.TryFind(parent, out s, out o)) break;
+            cur = parent;
+        }
+        segments.Reverse();
+        var names = new List<byte[]>(segments.Count + 4);
+        foreach (var (_, so, ss) in segments)
+        {
+            var nm = ss.NameAt(so);
+            if ((ss.Flags[so] & (byte)EntryFlags.Root) != 0)
+            {
+                foreach (var part in SplitPath(nm)) names.Add(part);
+            }
+            else names.Add(nm.ToArray());
+        }
+        if (names.Count == 0) return 0;
+        int leafIdx = names.Count - 1;
+        int bonus = 0, segIdx = 0, pos = 0, lastSeg = -1;
+        bool inOrder = true, anyInPath = false;
+        for (int t = 0; t < q.Tokens.Count; t++)
+        {
+            var tok = q.Tokens[t];
+            bool placed = false;
+            // Greedy: first segment at or after the previous one (and after the previous position within it), i.e. the
+            // shallowest placement, which is optimal for an ordered subsequence.
+            for (int si = segIdx; si < names.Count && !placed; si++)
+            {
+                int from = si == segIdx ? pos : 0;
+                int at = from < names[si].Length ? names[si].AsSpan(from).IndexOf(tok) : -1;
+                if (at < 0) continue;
+                at += from;
+                placed = true;
+                if (si < leafIdx)
+                {
+                    anyInPath = true;
+                    if (Text.Normalizer.IsWordStart(names[si], at)) bonus += w.PathWordStart;
+                }
+                segIdx = si; pos = at + tok.Length;
+                if (t == q.Tokens.Count - 1) lastSeg = si;
+            }
+            if (!placed) inOrder = false;
+        }
+        if (!anyInPath) return 0; // every token in the name itself: the name-level signals already rank it
+        // The fragments lead to a folder ABOVE this item (the last one is already matched by an ancestor): the item is
+        // deeper than the target ("seek src" → src, not src\Seekbeam.Core).
+        if (inOrder && lastSeg < leafIdx) return -w.PathInOrder;
+        if (inOrder) bonus += w.PathInOrder;
+        if (names[leafIdx].AsSpan().IndexOf(q.Tokens[^1]) >= 0) bonus += w.LastTokenInName;
+        if (inOrder && names[leafIdx].AsSpan().StartsWith(q.Tokens[^1])) bonus += w.LeafPrefix;
+        return bonus;
+    }
+
+    private static List<byte[]> SplitPath(ReadOnlySpan<byte> path)
+    {
+        var parts = new List<byte[]>();
+        while (path.Length > 0)
+        {
+            int sep = path.IndexOf((byte)'\\');
+            var seg = sep < 0 ? path : path[..sep];
+            if (seg.Length > 0) parts.Add(seg.ToArray());
+            if (sep < 0) break;
+            path = path[(sep + 1)..];
+        }
+        return parts;
     }
 
     /// <summary>OR of term bits matched by the names of <paramref name="dirId"/> and all its ancestors, plus depth.</summary>

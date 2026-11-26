@@ -74,7 +74,7 @@ public sealed class IntegrityTests(ITestOutputHelper output) : IDisposable
         var registry = ExtractorRegistry.CreateDefault();
         var e = new SeekbeamEngine(storage, new EngineOptions
         {
-            EnableApps = false, EnableRecentItems = false,
+            EnableApps = false, EnableRecentItems = false, FolderIndexDrives = () => [],
             SupportedExtensions = () => registry.SupportedExtensions,
             ExtractionFactory = () => new ExtractorClient(HostPath),
         });
@@ -115,6 +115,56 @@ public sealed class IntegrityTests(ITestOutputHelper output) : IDisposable
             output.WriteLine($"Indexed entries: {e.NameIndex.LiveCount}, content docs: {e.ContentDb.Counts().Docs}, errors: {e.RecentErrors().Count}");
         }
         AssertUnchanged(before, SourceSnapshot.Take(info.Root));
+        AssertUnchanged(beforeOutside, SourceSnapshot.Take(info.OutsideTarget));
+    }
+
+    /// <summary>
+    /// Folder index and "go to folder" (TD-20, TD-21): a whole tree walked as if it were a fixed drive (only its folder
+    /// listings are read), a learned folder outside it, its full re-walk, and the live completion of typed paths over every
+    /// folder of the dataset. Nothing may change, inside the indexed location or outside it.
+    /// </summary>
+    [Fact]
+    public void FolderIndexAndPathCompletionModifyNothing()
+    {
+        string drive = Path.Combine(_base, "drive");
+        var info = AuditDataset.Build(Path.Combine(drive, "dataset"));
+        string learned = Path.Combine(_base, "share", "Equipe");
+        Directory.CreateDirectory(Path.Combine(learned, "Q1", "Rapports"));
+        File.WriteAllText(Path.Combine(learned, "Q1", "budget.xlsx"), "learned folder file");
+        var before = SourceSnapshot.Take(drive);
+        var beforeLearned = SourceSnapshot.Take(Path.Combine(_base, "share"));
+        var beforeOutside = SourceSnapshot.Take(info.OutsideTarget);
+        var storage = new SeekbeamStorage(Path.Combine(_base, "data-fi"));
+        new ConfigStore(storage).Update(c =>
+        {
+            Configure(c, Path.Combine(info.Root, "Documents")); // a location inside the walked tree
+            c.FolderIndex.Enabled = true;
+        });
+        using (var e = new SeekbeamEngine(storage, new EngineOptions { EnableApps = false, EnableRecentItems = false, FolderIndexDrives = () => [drive] }))
+        {
+            e.Start();
+            Assert.True(WaitIdle(e), "folder index walk did not finish");
+            e.RecordNavigation(learned);
+            Thread.Sleep(500);
+            Assert.True(WaitIdle(e), "learned folder walk did not finish");
+            e.Indexer.Post(new Seekbeam.Core.Indexing.ReconcileFolderIndexCommand(Seekbeam.Core.Catalog.QueuePriority.Reconcile));
+            Thread.Sleep(500);
+            Assert.True(WaitIdle(e), "folder index re-walk did not finish");
+            long completions = 0;
+            var walk = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+            foreach (var dir in Directory.EnumerateDirectories(drive, "*", walk).Prepend(drive))
+            {
+                completions += PathCompleter.Complete(dir + "\\", 500, includeHidden: true, default).Results.Count;
+                completions += PathCompleter.Complete(dir + "\\a", 500, includeHidden: true, default).Results.Count;
+            }
+            var nav = e.Search.Search(new SearchRequest { Query = "rapports", Purpose = SearchPurpose.Navigate, MaxResults = 20 }, default).Results;
+            Assert.Contains(nav, r => r.FullPath.EndsWith(@"Q1\Rapports", StringComparison.OrdinalIgnoreCase));
+            output.WriteLine($"Folder index: {e.Stats().FolderIndexFolders} folders; {completions} path completions listed");
+            Assert.True(e.Stats().FolderIndexFolders > 5);
+        }
+        SqliteConnection.ClearAllPools();
+        AssertUnchanged(before, SourceSnapshot.Take(drive));
+        AssertUnchanged(beforeLearned, SourceSnapshot.Take(Path.Combine(_base, "share")));
         AssertUnchanged(beforeOutside, SourceSnapshot.Take(info.OutsideTarget));
     }
 

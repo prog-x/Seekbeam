@@ -46,6 +46,19 @@ public partial class LauncherWindow : Window
 
     public bool IsShown => _shown;
 
+    /// <summary>Raised with a short message for the user when a navigation could not be done (shown as a notification).</summary>
+    public event Action<string>? NoticeRequested;
+
+    /// <summary>Keys typed in dialogs before the launcher had the focus (direct typing).</summary>
+    internal DialogKeyRouter? Router { get; set; }
+
+    // "Go to folder" mode (TD-20): the dialog or Explorer window the launcher drives, or null for the normal launcher.
+    private NavTarget? _target;
+    private bool _openedByTyping;
+    private (double Bottom, bool Above)? _anchor;
+
+    private bool Navigating => _target != null;
+
     public void Toggle()
     {
         if (_shown && IsActive) HideLauncher(); else ShowLauncher();
@@ -53,17 +66,54 @@ public partial class LauncherWindow : Window
 
     public void ShowLauncher(string? text = null)
     {
+        SetMode(null, false);
         var cfg = _engine.Config.Current.Launcher;
         Width = cfg.Width;
-        Topmost = cfg.Topmost;
         Position(cfg.Position);
+        ShowCore(text, selectAll: true);
+    }
+
+    /// <summary>
+    /// Opens the launcher in "go to folder" mode for an Open/Save/folder dialog or an Explorer window, glued under it.
+    /// <paramref name="typed"/>: opened by direct typing in the dialog's file list (<paramref name="text"/> is that character).
+    /// </summary>
+    internal void ShowForTarget(NavTarget target, string? text, bool typed)
+    {
+        SetMode(target, typed);
+        PositionNear(target.Hwnd);
+        ShowCore(text, selectAll: !typed);
+        if (typed)
+        {
+            // Characters typed while the launcher was appearing were captured by the keyboard hook: append them.
+            string more = Router?.EndCapture() ?? "";
+            QueryBox.Text = (text ?? "") + more;
+            QueryBox.CaretIndex = QueryBox.Text.Length;
+        }
+        if (QueryBox.Text.Length == 0) ShowLocations(++_generation);
+    }
+
+    private void SetMode(NavTarget? target, bool typed)
+    {
+        bool changed = (_target == null) != (target == null) || _target?.Kind != target?.Kind;
+        _target = target;
+        _openedByTyping = typed;
+        _anchor = null;
+        Hint.Text = target == null ? L.T("Launcher_Hint") : L.T(target.IsDialog ? "Launcher_HintDialog" : "Launcher_HintExplorer");
+        KeysHint.Text = target == null ? L.T("Launcher_Keys")
+            : target.IsDialog && _engine.Config.Current.Navigation.QuickSwitch ? L.T("Launcher_KeysDialog") : L.T("Launcher_KeysNavigate");
+        if (changed) { _items.Clear(); QueryBox.Text = ""; }
+    }
+
+    private void ShowCore(string? text, bool selectAll)
+    {
+        Topmost = _engine.Config.Current.Launcher.Topmost || Navigating;
         if (text != null) { QueryBox.Text = text; }
         Show();
         Activate();
         ForceForeground();
         QueryBox.Focus();
         Keyboard.Focus(QueryBox);
-        QueryBox.SelectAll();
+        if (selectAll) QueryBox.SelectAll();
         _shown = true;
         _statusTimer.Start();
         UpdateIdleStatus();
@@ -76,6 +126,35 @@ public partial class LauncherWindow : Window
         _statusTimer.Stop();
         _cts?.Cancel();
         Hide();
+    }
+
+    /// <summary>
+    /// Glued under the bottom edge of the target, aligned on its left edge and as wide as it (within bounds); above it
+    /// when there is no room below. Kept anchored while the list grows (see <see cref="OnRenderSizeChanged"/>).
+    /// </summary>
+    private void PositionNear(IntPtr hwnd)
+    {
+        if (NavigationTargets.Bounds(hwnd) is not { } r) { Position(_engine.Config.Current.Launcher.Position); return; }
+        var center = new Win32.POINT { X = (r.Left + r.Right) / 2, Y = (r.Top + r.Bottom) / 2 };
+        IntPtr mon = Win32.MonitorFromPoint(center, 2 /* MONITOR_DEFAULTTONEAREST */);
+        var mi = new Win32.MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<Win32.MONITORINFO>() };
+        if (!Win32.GetMonitorInfoW(mon, ref mi) || mi.rcWork.Right <= mi.rcWork.Left) { Position(_engine.Config.Current.Launcher.Position); return; }
+        double scale = Win32.GetDpiForMonitor(mon, 0, out uint dpiX, out _) == 0 ? dpiX / 96.0 : 1;
+        double waLeft = mi.rcWork.Left / scale, waTop = mi.rcWork.Top / scale, waRight = mi.rcWork.Right / scale, waBottom = mi.rcWork.Bottom / scale;
+        double avail = waRight - waLeft, minWidth = Math.Min(520, avail);
+        Width = Math.Clamp((r.Right - r.Left) / scale, minWidth, Math.Max(minWidth, Math.Min(1400, avail))); // narrow screens: never min > max
+        Left = Math.Clamp(r.Left / scale, waLeft, Math.Max(waLeft, waRight - Width));
+        double below = r.Bottom / scale, above = r.Top / scale;
+        const double expected = 360; // room for a few results
+        if (below + expected <= waBottom) { Top = below; _anchor = (below, false); }
+        else if (above - expected >= waTop) { _anchor = (above, true); Top = above - Math.Max(ActualHeight, 120); }
+        else { Top = Math.Max(waTop, waBottom - expected); _anchor = null; }
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        if (_anchor is { Above: true } a && sizeInfo.HeightChanged) Top = a.Bottom - ActualHeight;
     }
 
     private void Position(LauncherPosition mode)
@@ -117,11 +196,23 @@ public partial class LauncherWindow : Window
         _cts?.Cancel();
         var cts = _cts = new CancellationTokenSource();
         int gen = ++_generation;
-        if (string.IsNullOrWhiteSpace(query)) { _items.Clear(); UpdateIdleStatus(); return; }
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            _items.Clear();
+            UpdateIdleStatus();
+            if (Navigating && _shown) ShowLocations(gen);
+            return;
+        }
         int max = _engine.Config.Current.Launcher.MaxResults;
+        var nav = _engine.Config.Current.Navigation;
+        var request = new SearchRequest
+        {
+            Query = query, MaxResults = max, Purpose = Navigating ? SearchPurpose.Navigate : SearchPurpose.Launch,
+            IncludeApps = !Navigating, PathCompletion = nav.PathCompletion,
+        };
         Task.Run(() =>
         {
-            try { return _engine.Search.Search(new SearchRequest { Query = query, MaxResults = max }, cts.Token); }
+            try { return _engine.Search.Search(request, cts.Token); }
             catch (OperationCanceledException) { return null; }
         }).ContinueWith(t =>
         {
@@ -129,8 +220,51 @@ public partial class LauncherWindow : Window
             if (t.Exception is { } ex) { Core.Diagnostics.Log.Warn("Launcher", "Name search: " + ex.GetBaseException().Message); return; }
             if (t.Result == null) return;
             Show(t.Result);
-            SearchContent(query, gen, max, cts.Token);
+            // Content results: not for "go to folder", nor for a typed path (completed from the disk).
+            if (!Navigating && !(nav.PathCompletion && PathCompleter.IsAbsolutePathQuery(query))) SearchContent(query, gen, max, cts.Token);
         }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    /// <summary>
+    /// Empty query in "go to folder" mode: the folders of the open Explorer windows (Quick Switch), then favourite and
+    /// recent folders. Each part has its own switch in the settings. Loaded after the window is shown.
+    /// </summary>
+    private void ShowLocations(int gen)
+    {
+        var nav = _engine.Config.Current.Navigation;
+        var target = _target;
+        if (target == null || (!nav.QuickSwitch && !nav.RecentFolders)) return;
+        int max = Math.Max(_engine.Config.Current.Launcher.MaxResults, 8);
+        Dispatcher.BeginInvoke(async () =>
+        {
+            if (gen != _generation || !_shown) return;
+            var list = new List<SearchResult>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (nav.QuickSwitch)
+            {
+                foreach (var f in ExplorerShell.OpenFolders())
+                {
+                    if (!f.ActiveTab || f.Window == target.Hwnd || !seen.Add(f.Path) || list.Count >= max) continue;
+                    list.Add(new SearchResult
+                    {
+                        Kind = ResultKind.Folder, Origin = ResultOrigin.Explorer, FullPath = f.Path, Directory = System.IO.Path.GetDirectoryName(f.Path),
+                        Name = System.IO.Path.GetFileName(f.Path) is { Length: > 0 } n ? n : f.Path,
+                    });
+                }
+            }
+            if (nav.RecentFolders)
+            {
+                var recent = await Task.Run(() =>
+                {
+                    try { return _engine.RecentLocations(max * 2); }
+                    catch (Exception ex) { Core.Diagnostics.Log.Warn("Launcher", "Recent folders: " + ex.Message); return []; }
+                });
+                foreach (var r in recent) if (list.Count < max && seen.Add(r.FullPath)) list.Add(r);
+            }
+            if (gen != _generation || !_shown || QueryBox.Text.Length > 0) return;
+            Show(new SearchResultSet { Results = list, TotalMatches = list.Count });
+            Status.Text = list.Count == 0 ? L.T("Launcher_NavNoLocation") : L.T("Launcher_NavLocations");
+        }, System.Windows.Threading.DispatcherPriority.Background);
     }
 
     /// <summary>
@@ -209,6 +343,7 @@ public partial class LauncherWindow : Window
     /// </summary>
     private void LoadContentStates(int gen)
     {
+        if (Navigating) return; // "go to folder": the content dot is not useful there
         var files = _items.Where(i => i.Result.Kind == ResultKind.File && i.Result.EntryId > 0).ToList();
         if (files.Count == 0) return;
         Task.Run(() =>
@@ -241,8 +376,9 @@ public partial class LauncherWindow : Window
         bool banner = _busyTicks >= 2;
         IndexingBanner.Visibility = banner ? Visibility.Visible : Visibility.Collapsed;
         if (banner) IndexingBannerText.Text = L.F("Launcher_IndexingBanner", Math.Max(s.QueueLength, 1));
-        if (QueryBox.Text.Length == 0)
-            Status.Text = L.F("Launcher_Idle", _engine.NameIndex.LiveCount, _engine.Apps.Count);
+        if (QueryBox.Text.Length > 0) return;
+        if (_target is { } t) { if (_items.Count == 0) Status.Text = L.T("NavTarget_" + t.Kind); } // which window is driven
+        else Status.Text = L.F("Launcher_Idle", _engine.NameIndex.LiveCount, _engine.Apps.Count);
     }
 
     private ResultItem? Selected => Results.SelectedItem as ResultItem;
@@ -253,7 +389,15 @@ public partial class LauncherWindow : Window
         switch (e.Key)
         {
             case Key.Escape:
-                if (QueryBox.Text.Length > 0 && mods == ModifierKeys.Shift) QueryBox.Clear(); else HideLauncher();
+                if (QueryBox.Text.Length > 0 && mods == ModifierKeys.Shift) QueryBox.Clear();
+                else if (Navigating) BackToTarget(giveBackText: _openedByTyping);
+                else HideLauncher();
+                e.Handled = true; break;
+            case Key.Enter or Key.Return when Navigating && mods == ModifierKeys.None:
+                if (Selected is { } target) _ = NavigateTo(target.Result);
+                e.Handled = true; break;
+            case Key.G when Navigating && mods == ModifierKeys.Control && _target!.IsDialog && _engine.Config.Current.Navigation.QuickSwitch:
+                _ = QuickSwitch(_target!);
                 e.Handled = true; break;
             case Key.Down: Move(1); e.Handled = true; break;
             case Key.Up: Move(-1); e.Handled = true; break;
@@ -323,7 +467,86 @@ public partial class LauncherWindow : Window
 
     private void Results_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (Selected is { } item) { ResultActions.Open(item.Result, _engine); HideLauncher(); }
+        if (Selected is not { } item) return;
+        if (Navigating) { _ = NavigateTo(item.Result); return; }
+        ResultActions.Open(item.Result, _engine);
+        HideLauncher();
+    }
+
+    // ------------------------------------------------------------------ "go to folder" (TD-20)
+
+    /// <summary>Closes the launcher and gives the focus back to the dialog; with direct typing, Esc also gives it the letters.</summary>
+    private void BackToTarget(bool giveBackText)
+    {
+        string typed = QueryBox.Text;
+        var t = _target;
+        HideLauncher();
+        if (t == null || !Win32.IsWindow(t.Hwnd)) return;
+        Win32.SetForegroundWindow(t.Hwnd);
+        if (giveBackText && typed.Length is > 0 and <= 64)
+            Dispatcher.BeginInvoke(async () => { await Task.Delay(80); if (Win32.GetForegroundWindow() == t.Hwnd) Win32.TypeText(typed); });
+    }
+
+    /// <summary>
+    /// Sends the target to the chosen result: a folder, or the folder of a file (whose name then goes in the file-name box
+    /// of an Open dialog, or is selected in Explorer). Seekbeam only navigates: the user validates the dialog.
+    /// </summary>
+    private async Task NavigateTo(SearchResult r)
+    {
+        var t = _target;
+        if (t == null || r.Kind == ResultKind.App) return;
+        string? folder = r.Kind == ResultKind.Folder ? r.FullPath : System.IO.Path.GetDirectoryName(r.FullPath);
+        string? file = r.Kind == ResultKind.File ? System.IO.Path.GetFileName(r.FullPath) : null;
+        if (string.IsNullOrEmpty(folder)) return;
+        _engine.Usage.RecordQuery(QueryBox.Text);
+        HideLauncher();
+        await NavigateTarget(t, folder, file, r.Kind == ResultKind.Folder ? r.EntryId : 0);
+    }
+
+    /// <summary>Ctrl+G: the target goes to the folder of the front-most Explorer window.</summary>
+    internal async Task QuickSwitch(NavTarget t)
+    {
+        string? folder = ExplorerShell.FrontFolder(except: t.Hwnd);
+        if (folder == null) { NoticeRequested?.Invoke(L.T("Nav_NoExplorer")); return; }
+        if (_shown) HideLauncher();
+        await NavigateTarget(t, folder, null, 0);
+    }
+
+    private async Task NavigateTarget(NavTarget t, string folder, string? file, long entryId)
+    {
+        if (!Win32.IsWindow(t.Hwnd)) { NoticeRequested?.Invoke(L.T("Nav_TargetGone")); return; }
+        Win32.SetForegroundWindow(t.Hwnd);
+        NavOutcome outcome;
+        if (t.Kind == NavTargetKind.Explorer)
+            outcome = await ExplorerShell.NavigateAsync(t.Hwnd, folder, file) ? NavOutcome.Done : NavOutcome.TargetGone;
+        else if (!t.CanNavigate) outcome = NavOutcome.Unsupported;
+        else outcome = await Task.Run(() => NavigationTargets.NavigateDialog(t, folder, file));
+        switch (outcome)
+        {
+            case NavOutcome.Done:
+                _engine.RecordNavigation(folder, entryId);
+                break;
+            case NavOutcome.FolderMissing:
+                NoticeRequested?.Invoke(L.F("Nav_FolderMissing", folder));
+                // Only the stale entry must go: a shallow rescan of its parent, at low priority (the parent may be a drive).
+                if (System.IO.Path.GetDirectoryName(folder) is { } parent)
+                    _engine.Indexer.Post(new Core.Indexing.RescanPathCommand(parent, Core.Catalog.QueuePriority.Reconcile, Core.Catalog.ScanMode.Shallow));
+                break;
+            case NavOutcome.TargetGone:
+                NoticeRequested?.Invoke(L.T("Nav_TargetGone"));
+                break;
+            case NavOutcome.Timeout:
+                // The dialog is drivable but did not move in time (slow network folder…): its text was restored.
+                ShellActions.CopyText(folder);
+                NoticeRequested?.Invoke(L.F("Nav_TimeoutCopied", folder));
+                break;
+            default:
+                // Cannot drive this window (old folder browser, elevated application…): the path is ready to paste.
+                // Not recorded as a navigation: the dialog did not go there.
+                ShellActions.CopyText(folder);
+                NoticeRequested?.Invoke(L.F(outcome == NavOutcome.Blocked ? "Nav_BlockedCopied" : "Nav_UnsupportedCopied", folder));
+                break;
+        }
     }
 
     private void Results_RightClick(object sender, MouseButtonEventArgs e)

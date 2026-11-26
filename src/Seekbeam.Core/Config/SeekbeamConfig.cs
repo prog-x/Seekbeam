@@ -30,6 +30,8 @@ public sealed class SeekbeamConfig
     public PrivacyConfig Privacy { get; set; } = new();
     public WatchConfig Watch { get; set; } = new();
     public DiscoveryConfig Discovery { get; set; } = new();
+    public NavigationConfig Navigation { get; set; } = new();
+    public FolderIndexConfig FolderIndex { get; set; } = new();
     public LoggingConfig Logging { get; set; } = new();
 
     public static SeekbeamConfig CreateDefault()
@@ -60,6 +62,13 @@ public sealed class SeekbeamConfig
         Content.Archives.MaxCompressionRatio = Math.Clamp(Content.Archives.MaxCompressionRatio, 2, 10_000);
         Watch.ReconcileIntervalHours = Math.Clamp(Watch.ReconcileIntervalHours, 1, 24 * 30);
         Discovery.MaxDirectoriesPerHour = Math.Clamp(Discovery.MaxDirectoriesPerHour, 10, 1_000_000);
+        FolderIndex.MaxDepth = Math.Clamp(FolderIndex.MaxDepth, 1, 64);
+        FolderIndex.LearnedDepth = Math.Clamp(FolderIndex.LearnedDepth, 0, 8);
+        FolderIndex.MaxLearned = Math.Clamp(FolderIndex.MaxLearned, 0, 2000);
+        FolderIndex.ReconcileIntervalHours = Math.Clamp(FolderIndex.ReconcileIntervalHours, 1, 24 * 90);
+        FolderIndex.Excludes = FolderIndex.Excludes.Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        FolderIndex.ExcludedPaths = FolderIndex.ExcludedPaths.Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        FolderIndex.LowerRanked = FolderIndex.LowerRanked.Where(e => !string.IsNullOrWhiteSpace(e)).Select(e => e.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var folders = new List<string>();
         foreach (var d in Content.ExcludedFolders)
         {
@@ -149,6 +158,18 @@ public sealed class RankingWeights
     public int Favorite { get; set; } = 400;
     public int FuzzyPenaltyPerError { get; set; } = 250;
     public int DepthPenalty { get; set; } = 5;
+    /// <summary>Path fragments found along the path in the order typed ("sou per see").</summary>
+    public int PathInOrder { get; set; } = 150;
+    /// <summary>Per fragment found at the start of a folder name of the path.</summary>
+    public int PathWordStart { get; set; } = 40;
+    /// <summary>The last fragment names the item itself (the folder the user is heading for).</summary>
+    public int LastTokenInName { get; set; } = 100;
+    /// <summary>Path fragments that lead to the item, and its name starts with the last one ("progmicro" → Microsoft).</summary>
+    public int LeafPrefix { get; set; } = 150;
+    /// <summary>Folder of the folder index (outside the indexed locations): the locations win on equal relevance.</summary>
+    public int OutsidePenalty { get; set; } = 30;
+    /// <summary>Folder ranked lower (Program Files, ProgramData, AppData…).</summary>
+    public int LoweredPenalty { get; set; } = 100;
 }
 
 public sealed class RootConfig
@@ -279,6 +300,60 @@ public sealed class DiscoveryConfig
     public bool Enabled { get; set; } = true;
     public bool WatchRecentItems { get; set; } = true;
     public int MaxDirectoriesPerHour { get; set; } = 2000;
+}
+
+/// <summary>
+/// Driving the Open/Save/folder dialogs and Explorer windows from the launcher (Listary-like). Every option can be
+/// switched off on its own. Seekbeam only navigates those windows: it never validates a dialog (TECHNICAL_DECISIONS TD-20).
+/// </summary>
+public sealed class NavigationConfig
+{
+    /// <summary>Double Ctrl over an Open/Save/folder dialog opens the launcher in "go to folder" mode for that dialog.</summary>
+    public bool DialogIntegration { get; set; } = true;
+    /// <summary>Typing a letter or digit in the file list of a dialog opens the launcher with it (Esc gives the letters back).</summary>
+    public bool DirectTyping { get; set; } = true;
+    /// <summary>Double Ctrl over an Explorer window: choosing a folder navigates that window.</summary>
+    public bool Explorer { get; set; } = true;
+    /// <summary>Ctrl+G in a dialog jumps to the folder of the last Explorer window; open Explorer folders are listed.</summary>
+    public bool QuickSwitch { get; set; } = true;
+    /// <summary>With an empty query, the "go to folder" mode lists favourite and recent folders.</summary>
+    public bool RecentFolders { get; set; } = true;
+    /// <summary>Typing an absolute path ("C:\Win", "\\server\", "%APPDATA%\") lists the matching entries live from the disk.</summary>
+    public bool PathCompletion { get; set; } = true;
+}
+
+/// <summary>
+/// Lightweight index of FOLDER names outside the indexed locations (TD-21): the whole tree of the fixed local drives
+/// (minus exclusions) and folders learned from use (network or removable locations). Files and content are never read
+/// there: only directory listings, through SourceFileAccess.
+/// </summary>
+public sealed class FolderIndexConfig
+{
+    public bool Enabled { get; set; } = true;
+    /// <summary>Walk the folder tree of every fixed local drive.</summary>
+    public bool FixedDrives { get; set; } = true;
+    /// <summary>Remember folders outside the index that are used (dialogs, Explorer, recent items), with a few levels below.</summary>
+    public bool LearnFolders { get; set; } = true;
+    public int MaxDepth { get; set; } = 16;
+    /// <summary>Levels indexed below a learned folder.</summary>
+    public int LearnedDepth { get; set; } = 2;
+    public int MaxLearned { get; set; } = 200;
+    /// <summary>Full re-walk of the drive trees (directory events are watched in between).</summary>
+    public int ReconcileIntervalHours { get; set; } = 24 * 7;
+    /// <summary>Folder names or relative-path patterns never indexed (same syntax as the location exclusions).</summary>
+    public List<string> Excludes { get; set; } = DefaultExcludes();
+    /// <summary>Absolute folders never indexed (environment variables allowed).</summary>
+    public List<string> ExcludedPaths { get; set; } = [@"%SystemRoot%"];
+    /// <summary>Folders ranked lower: absolute paths (environment variables allowed) or a folder name matching anywhere.</summary>
+    public List<string> LowerRanked { get; set; } = [@"%ProgramFiles%", @"%ProgramFiles(x86)%", @"%ProgramData%", "AppData"];
+
+    public static List<string> DefaultExcludes() =>
+    [
+        "$Recycle.Bin", "System Volume Information", "$WinREAgent", "$SysReset", "$Windows.~BT", "$Windows.~WS", "Config.Msi", "Recovery",
+        "WinSxS", "WindowsApps", "node_modules", ".git", ".svn", ".hg", "bin", "obj", "__pycache__", ".vs", ".idea", ".gradle",
+        "Cache", "Code Cache", "GPUCache", "cache2", "CacheStorage", "Service Worker", "INetCache", "Temporary Internet Files",
+        @"**\AppData\Local\Temp", @"**\AppData\Local\Packages", @"**\.nuget\packages",
+    ];
 }
 
 public sealed class LoggingConfig

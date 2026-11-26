@@ -2,8 +2,12 @@ using System.Runtime.InteropServices;
 
 namespace Seekbeam.Core.NameIndex;
 
+/// <summary>
+/// Per-record flags of the Name Index. <see cref="Outside"/> and <see cref="Lowered"/> come from entries.xflags (catalog v3):
+/// a folder of the folder index (outside the indexed locations, TD-21), and a folder ranked lower (Program Files, AppData…).
+/// </summary>
 [Flags]
-public enum EntryFlags : byte { None = 0, Directory = 1, Hidden = 2, System = 4, Reparse = 8, Root = 16 }
+public enum EntryFlags : byte { None = 0, Directory = 1, Hidden = 2, System = 4, Reparse = 8, Root = 16, Outside = 32, Lowered = 64 }
 
 /// <summary>A change to the Name Index, produced after the catalog transaction committed.</summary>
 public readonly record struct NameChange(int Id, int Parent, EntryFlags Flags, string? Name, long Rev, bool Deleted);

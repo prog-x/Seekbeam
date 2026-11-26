@@ -15,9 +15,10 @@ The following are **protected sources**:
 2. any opportunistically discovered file, and the user's "Recent Items" folder;
 3. any file opened or analyzed by an extractor, and any file contained in a processed archive;
 4. the shortcuts and executables read by the application index (Start menu, desktop, configured folders);
-5. the targets reached through a symbolic link, a junction, a mount point or an alternate path (8.3, `\\?\`, UNC, another drive letter): the protection applies to the object reached, whatever the path.
+5. the targets reached through a symbolic link, a junction, a mount point or an alternate path (8.3, `\\?\`, UNC, another drive letter): the protection applies to the object reached, whatever the path;
+6. the folders walked by the **folder index** (every fixed drive, the folders learned from use) and the folders listed by **path completion** (TD-21): only their listings are read, and they are protected exactly like the sources above.
 
-**Only exception**: the Seekbeam data directory (`%LOCALAPPDATA%\Seekbeam`, or `<exe>\Data` in portable mode). It is automatically excluded from indexing and is therefore never a source.
+**Only exception**: the Seekbeam data directory (`%LOCALAPPDATA%\Seekbeam`, or `<exe>\Data` in portable mode). It is automatically excluded from indexing and is therefore never a source. Seekbeam's own **program folder** is likewise always kept out of the folder index (TD-21), because it receives the extractor sandbox's read permission (audit W7); the locations are still checked as before (`TouchesScope`).
 
 ## 3. Operations allowed on sources
 
@@ -29,6 +30,10 @@ The following are **protected sources**:
 | Content read | `CreateFileW` | `GENERIC_READ`, R/W/D sharing, `OPEN_EXISTING`, `FILE_FLAG_SEQUENTIAL_SCAN`, `FILE_FLAG_OPEN_NO_RECALL` |
 | Watching | `ReadDirectoryChangesW` (FileSystemWatcher) | `FILE_LIST_DIRECTORY` |
 | Opening by the user | `ShellExecuteEx` (`open`, `runas`, `openas`, `properties`), `SHOpenFolderAndSelectItems` | delegated to the shell (§8) |
+| Folder index, path completion | same folder enumeration as above; files are never opened there | `FILE_LIST_DIRECTORY` |
+| Folder index watching | `ReadDirectoryChangesW` with `FILE_NOTIFY_CHANGE_DIR_NAME` only | `FILE_LIST_DIRECTORY` |
+| Shares of a typed server (`\\server\`) | `NetShareEnum` level 1 | no handle (names only) |
+| "Go to folder" in a dialog of another application (TD-20) | `WM_SETTEXT` / `WM_GETTEXT` / `WM_NEXTDLGCTL` to its file-name box, Enter **posted**; Explorer: `IShellWindows` → `Navigate2` | no file access by Seekbeam; the dialog only navigates and is **never validated** (§8) |
 
 `OPEN_EXISTING` makes any creation impossible by construction. R/W/D sharing guarantees that Seekbeam never blocks another application.
 
@@ -68,7 +73,7 @@ Both are refused when the location is inside the indexing perimeter or contains 
 | Dynamic | `Seekbeam.FsAudit`: independent process, `ReadDirectoryChangesW` with **all** filters during the real execution of Seekbeam.exe; ETW script (administrator) with per-process attribution | real behavior observed by the kernel |
 
 ### Integrity test scenarios
-Initial scan; name indexing; extraction of every format; archives (normal, nested, bomb, malicious paths, encrypted); incremental indexing; watching (changes made **by the test** in a third-party area, excluded from the comparison); opportunistic discovery; reconciliation; pause and resume; normal shutdown; forced shutdown of the host and of the engine; recovery after a crash; malformed files; access denied (deny ACL); locked files (opened exclusively by the test); junctions and cycles; large files; read-only and hidden files; Unicode names and long paths.
+Initial scan; name indexing; extraction of every format; archives (normal, nested, bomb, malicious paths, encrypted); incremental indexing; watching (changes made **by the test** in a third-party area, excluded from the comparison); opportunistic discovery; reconciliation; pause and resume; normal shutdown; forced shutdown of the host and of the engine; recovery after a crash; malformed files; access denied (deny ACL); locked files (opened exclusively by the test); junctions and cycles; large files; read-only and hidden files; Unicode names and long paths; folder index (a whole tree walked as a drive, a learned folder, a full re-walk) and path completion over every folder; real Open / Save As / folder dialogs and an Explorer window driven by `tools/Seekbeam.DialogCheck` (every dialog closed by Cancel, test tree unchanged).
 
 ## 8. Limits of the guarantee (acknowledged and documented)
 
@@ -78,6 +83,7 @@ Initial scan; name indexing; extraction of every format; archives (normal, neste
 4. **Cloud files**: `FILE_FLAG_OPEN_NO_RECALL` and attribute filtering prevent hydration. A non-compliant third-party cloud provider could nevertheless react to enumeration.
 5. **Antivirus and third-party filters**: they may react to our reads. This is outside the scope of Seekbeam.
 6. **Dynamic audit**: `ReadDirectoryChangesW` observes effects but does not attribute them to a process. Attribution requires ETW or Procmon with administrator rights; the script is provided but was not run in the non-elevated development session.
+7. **Dialogs of other applications** (TD-20): Seekbeam puts a folder path in their file-name box and posts Enter; the dialog only navigates. A Save As dialog keeps the name the user typed and is never validated by Seekbeam (the path ends with a separator and the folder is checked to exist just before, so the dialog cannot take it for a file name). Validating the dialog, and what the application then writes, is the user's action in that application, as with "Open" (§8.2).
 
 ## 9. Acceptance criteria
 

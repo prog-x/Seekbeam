@@ -41,6 +41,7 @@ public partial class DashboardWindow : Window
         NamesText.Text = Lines(
             L.F("Dash_NamesEntries", s.IndexedEntries, s.Files, s.Directories),
             L.F("Dash_NamesApps", s.Apps),
+            L.F("Dash_FolderIndex", s.FolderIndexFolders, s.FolderIndexWalkedUtc is { } fw ? fw.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture) : L.T("Set_FiNever")),
             L.F("Dash_NamesIndex", Mb(s.NameIndexBytes), Mb(s.CatalogBytes)),
             L.F("Dash_NamesDelta", s.DeltaRecords),
             L.F("Dash_NamesQueue", n.QueueLength, n.Busy ? L.F("Dash_Rate", n.EntriesPerSecond) : L.T("Dash_Idle")),

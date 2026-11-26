@@ -26,6 +26,8 @@ public sealed class EngineOptions
     public bool EnableApps { get; init; } = true;
     /// <summary>Use an unthrottled gate (tests/benchmarks) instead of the resource manager.</summary>
     public bool Unthrottled { get; init; }
+    /// <summary>Drives walked by the folder index (TD-21). Null = the ready fixed drives of the machine; tests pass their own.</summary>
+    public Func<IEnumerable<string>>? FolderIndexDrives { get; init; }
 }
 
 public sealed class EngineStats
@@ -33,6 +35,9 @@ public sealed class EngineStats
     public long IndexedEntries { get; init; }
     public long Files { get; init; }
     public long Directories { get; init; }
+    /// <summary>Folders of the folder index (outside the indexed locations).</summary>
+    public long FolderIndexFolders { get; init; }
+    public DateTime? FolderIndexWalkedUtc { get; init; }
     public int Apps { get; init; }
     public long NameIndexBytes { get; init; }
     public long CatalogBytes { get; init; }
@@ -116,7 +121,7 @@ public sealed class SeekbeamEngine : IDisposable
             Resources = new ResourceManager(() => Config.Current.Resources, () => Search.IsSearching);
             _gate = Resources;
         }
-        Indexer = new NameIndexer(Catalog, Writer, NameIndex, Entries, storage, _gate, options.SupportedExtensions);
+        Indexer = new NameIndexer(Catalog, Writer, NameIndex, Entries, storage, _gate, options.SupportedExtensions, options.FolderIndexDrives);
         Watcher = new WatchService(Indexer);
         Indexer.ScopeChanged += scope =>
         {
@@ -136,6 +141,7 @@ public sealed class SeekbeamEngine : IDisposable
         Indexer.QueueDrained += OnQueueDrained;
         AppScanner = new AppScanner(Apps);
         Recent = new RecentItemsMonitor(Indexer, path => Usage.RecordLaunch(path, null));
+        Recent.OutsideIndex = path => { if (Path.GetDirectoryName(path) is { } dir) LearnFolder(dir); };
         Usage.Resolver = path => Entries.Resolve(path, Indexer.Scope.Roots.Select(r => (r.RootId, r.Path, r.RootEntryId)).ToList());
         _contentFolders = FolderKey(cfg);
         Config.Changed += OnConfigChanged;
@@ -163,7 +169,13 @@ public sealed class SeekbeamEngine : IDisposable
         if (_options.EnableApps)
             ThreadPool.QueueUserWorkItem(_ => { AppScanner.Configure(Config.Current.Apps); AppScanner.Refresh(); });
         if (_options.EnableRecentItems && cfg.Discovery.Enabled && cfg.Discovery.WatchRecentItems) Recent.Start();
-        ThreadPool.QueueUserWorkItem(_ => { Thread.Sleep(3000); Usage.RebuildIdMap(); });
+        ThreadPool.QueueUserWorkItem(_ =>
+        {
+            Thread.Sleep(3000);
+            if (_disposed) return; // closed meanwhile (an exception on a pool thread would end the process)
+            try { Usage.RebuildIdMap(); }
+            catch (Exception ex) { if (!_disposed) Log.Warn("Engine", "Usage map: " + ex.Message); }
+        });
     }
 
     private void ApplyProfile(ResourceProfile p)
@@ -205,6 +217,9 @@ public sealed class SeekbeamEngine : IDisposable
     /// </summary>
     public SandboxProvisioningStatus ProvisionExtractorSandbox(string programDirectory)
     {
+        // The program folder receives one read ACE for the sandbox (audit W7): it is kept out of the folder index too, so that
+        // it is never inside the indexing perimeter (TD-21); locations are checked by TouchesScope as before.
+        Indexer.ExcludedFromFolderIndex = [programDirectory];
         var scope = ScopeRules.FromConfig(Config.Current, Storage.DataRoot);
         var status = SandboxProvisioning.Ensure(programDirectory, scope.TouchesScope, Storage.DataRoot);
         SandboxProvisioningResult = status;
@@ -219,13 +234,80 @@ public sealed class SeekbeamEngine : IDisposable
         if (r.Kind == ResultKind.App && r.App != null) { Usage.RecordLaunch(r.App.Key, null); return; }
         Usage.RecordLaunch(r.FullPath, r.EntryId == 0 ? null : r.EntryId);
         if (r.Kind == ResultKind.File) Recent.ReportOpened(r.FullPath);
+        else if (r.Kind == ResultKind.Folder && r.EntryId == 0) LearnFolder(r.FullPath); // typed path, outside the index
     }
+
+    /// <summary>
+    /// Records that a dialog or an Explorer window was sent to <paramref name="folder"/> from Seekbeam: usage (it becomes a
+    /// recent folder) and learning by the folder index when the folder is outside the index. Seekbeam only navigated.
+    /// </summary>
+    public void RecordNavigation(string folder, long entryId = 0)
+    {
+        Usage.RecordLaunch(folder, entryId == 0 ? Entries.Resolve(folder, Indexer.Scope.Roots.Select(r => (r.RootId, r.Path, r.RootEntryId)).ToList()) : entryId);
+        LearnFolder(folder);
+    }
+
+    /// <summary>Remembers a folder used outside the index (no-op when covered or when learning is off).</summary>
+    public void LearnFolder(string folder)
+    {
+        var fi = Config.Current.FolderIndex;
+        if (fi.Enabled && fi.LearnFolders && Config.Current.Privacy.Learning) Indexer.Post(new LearnFolderCommand(folder));
+    }
+
+    /// <summary>
+    /// Favourite and recent folders, most relevant first, for the empty "go to folder" list: favourites, then the folders
+    /// recently opened or navigated to, then the folders of recently opened files. Folders that no longer exist are skipped
+    /// (checked on local drives only: a network check could block).
+    /// </summary>
+    public List<SearchResult> RecentLocations(int max)
+    {
+        var res = new List<SearchResult>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Add(string folder, bool favorite)
+        {
+            if (res.Count >= max || folder.Length < 3) return;
+            string f = Path.TrimEndingDirectorySeparator(folder);
+            if (f.EndsWith(':')) f += "\\";
+            if (!seen.Add(f)) return;
+            bool unc = f.StartsWith(@"\\", StringComparison.Ordinal);
+            if (!unc && !SourceAccess.SourceFileAccess.DirectoryExists(f)) return;
+            string name = Path.GetFileName(f);
+            res.Add(new SearchResult
+            {
+                Kind = ResultKind.Folder, Origin = favorite ? ResultOrigin.Favorite : ResultOrigin.Recent,
+                Name = name.Length == 0 ? f : name, FullPath = f, Directory = Path.GetDirectoryName(f),
+                Score = favorite ? 1 : 0, Snippet = null,
+            });
+        }
+        foreach (var key in Usage.Favorites()) if (LooksLikePath(key) && IsFolderKey(key)) Add(key, true);
+        // Most recent first: a folder used, or the folder of a file opened.
+        foreach (var key in Usage.RecentKeys(400))
+        {
+            if (res.Count >= max) break;
+            if (!LooksLikePath(key)) continue;
+            if (IsFolderKey(key)) Add(key, false);
+            else if (Path.GetDirectoryName(key) is { } parent) Add(parent, false);
+        }
+        return res;
+    }
+
+    /// <summary>Folder or file? On the network the disk is not asked (it could block): a name without extension is a folder.</summary>
+    private static bool IsFolderKey(string key) =>
+        key.StartsWith(@"\\", StringComparison.Ordinal) ? !Path.HasExtension(key) : SourceAccess.SourceFileAccess.DirectoryExists(key);
+
+    private static bool LooksLikePath(string key) => key.Length > 2 && !key.StartsWith("app:", StringComparison.Ordinal) && Path.IsPathFullyQualified(key);
 
     /// <summary>Adds an exclusion for a path (from the "exclude from index" action). Never touches the file itself.</summary>
     public void ExcludePath(string fullPath)
     {
         var root = Indexer.Scope.FindRoot(fullPath);
         if (root == null) return;
+        if (root.FoldersOnly)
+        {
+            // Folder index: remembered as an absolute excluded folder.
+            Config.Update(c => { if (!c.FolderIndex.ExcludedPaths.Contains(fullPath, StringComparer.OrdinalIgnoreCase)) c.FolderIndex.ExcludedPaths.Add(fullPath); });
+            return;
+        }
         string? rel = root.Relative(fullPath);
         if (string.IsNullOrEmpty(rel)) return;
         Config.Update(c =>
@@ -370,6 +452,10 @@ public sealed class SeekbeamEngine : IDisposable
             var roots = Roots();
             if (roots.Any(r => r.LastReconcileUtc is null || DateTime.UtcNow - r.LastReconcileUtc > TimeSpan.FromHours(cfg.Watch.ReconcileIntervalHours)))
                 Indexer.Post(new ReconcileCommand(null, QueuePriority.Reconcile));
+            // Folder index: full walk at its own (much longer) interval, at the lowest priority.
+            if (cfg.FolderIndex.Enabled && (Indexer.FolderIndexReconciledUtc is not { } walked
+                    || DateTime.UtcNow - walked > TimeSpan.FromHours(cfg.FolderIndex.ReconcileIntervalHours)))
+                Indexer.Post(new ReconcileFolderIndexCommand(QueuePriority.Maintenance));
             ContentDb.DeleteOrphans(id => Entries.Get(id) != null, 2000);
             Catalog.Checkpoint();
             Usage.RebuildIdMap();
@@ -385,7 +471,7 @@ public sealed class SeekbeamEngine : IDisposable
         {
             using var cmd = con.CreateCommand();
             cmd.CommandText = "SELECT r.id, r.path, r.state, r.last_full_scan, r.last_reconcile, r.last_error, IFNULL(d.n,0), IFNULL(d.h,0) FROM roots r " +
-                              "LEFT JOIN (SELECT root_id, COUNT(*) n, SUM(hidden) h FROM depth_limited GROUP BY root_id) d ON d.root_id = r.id ORDER BY r.path";
+                              "LEFT JOIN (SELECT root_id, COUNT(*) n, SUM(hidden) h FROM depth_limited GROUP BY root_id) d ON d.root_id = r.id WHERE r.kind = 0 ORDER BY r.path";
             using var r = cmd.ExecuteReader();
             var cfgRoots = Config.Current.Roots;
             while (r.Read())
@@ -486,11 +572,12 @@ public sealed class SeekbeamEngine : IDisposable
         var cpu = p.TotalProcessorTime;
         double dt = (now - _lastCpuSample).TotalSeconds;
         if (dt >= 1) { _cpuPercent = 100.0 * (cpu - _lastCpu).TotalSeconds / (dt * Environment.ProcessorCount); _lastCpu = cpu; _lastCpuSample = now; }
-        var (files, dirs) = Entries.Counts();
+        var (files, dirs, outsideDirs) = Entries.Counts();
         var (docs, failed, _) = ContentDb.Counts();
         return new EngineStats
         {
             IndexedEntries = NameIndex.LiveCount, Files = files, Directories = dirs, Apps = Apps.Count,
+            FolderIndexFolders = outsideDirs, FolderIndexWalkedUtc = Indexer.FolderIndexReconciledUtc,
             NameIndexBytes = NameIndex.SegmentBytes + NameIndex.DeltaMemoryBytes, CatalogBytes = Catalog.FileSizeBytes(),
             ContentBytes = ContentDb.FileSizeBytes(), ContentDocs = docs, ContentFailed = failed, DeltaRecords = NameIndex.DeltaCount,
             Names = Indexer.Stats(), Content = ContentIndexer?.Stats() ?? new ContentIndexerStats(), Watch = Watcher.Stats(),

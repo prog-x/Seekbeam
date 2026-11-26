@@ -104,6 +104,15 @@ public sealed class StaticAnalysisTests(ITestOutputHelper output)
         "shell32.dll!ShellExecuteExW", "shell32.dll!ILCreateFromPathW", "shell32.dll!ILFree", "shell32.dll!SHOpenFolderAndSelectItems",
         // Known folders lookup (Downloads), read-only
         "shell32.dll!SHGetKnownFolderPath", "ole32.dll!CoTaskMemFree",
+        // "Go to folder" in Open/Save dialogs (TD-20): window classes/ids, focus of another thread, key translation (no
+        // state change), text of the file-name box (WM_GETTEXT/WM_SETTEXT with a timeout) and the Enter key POSTED to it.
+        // Seekbeam navigates the dialog and never validates it; nothing here touches the file system.
+        "user32.dll!EnumWindows", "user32.dll!EnumChildWindows", "user32.dll!GetClassNameW", "user32.dll!GetDlgCtrlID", "user32.dll!GetAncestor",
+        "user32.dll!IsWindow", "user32.dll!IsWindowVisible", "user32.dll!GetWindowRect", "user32.dll!PostMessageW", "user32.dll!SendMessageTimeoutW",
+        "user32.dll!MapVirtualKeyW", "user32.dll!GetGUIThreadInfo", "user32.dll!GetAsyncKeyState", "user32.dll!GetKeyState",
+        "user32.dll!GetKeyboardLayout", "user32.dll!ToUnicodeEx", "user32.dll!SendInput",
+        // "\\server\" typed in the launcher: names of the server's disk shares (read-only query, TD-20)
+        "netapi32.dll!NetShareEnum", "netapi32.dll!NetApiBufferFree",
         // Extractor sandbox (TD-17). Process creation: only SandboxLauncher (checked below). Tokens are only restricted
         // (privileges removed, integrity lowered) or queried; no privilege is ever enabled.
         "kernel32.dll!InitializeProcThreadAttributeList", "kernel32.dll!UpdateProcThreadAttribute", "kernel32.dll!DeleteProcThreadAttributeList",

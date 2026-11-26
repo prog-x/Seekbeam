@@ -19,6 +19,8 @@ Environment: Windows 11 Pro (Hyper-V VM), NTFS, **non-administrator** user, `Dis
 | FsAudit positive control | deliberate write, rename, attribute, timestamp and ACL changes | 5/5 detected (+ 1 access event) |
 | Extractors: integrity of the files read | `Seekbeam.Extraction.Tests` (`ExtractFileLeavesTheSourceUntouched`, traversal) | unchanged (SHA-256, size, attributes, creation and write times, listing) |
 | ETW with per-process attribution | `tools/audit/Run-EtwAudit.ps1` | **not run** (administrator rights required), see §7 |
+| Folder index + path completion (2026-11-26, TD-21): a whole tree walked as a fixed drive, a learned folder, a full re-walk, completion over every folder | `IntegrityTests.FolderIndexAndPathCompletionModifyNothing` | **0 modifications** (65 + 5 + 2 entries) |
+| "Go to folder" on real dialogs (2026-11-26, TD-20): Open, Save As, folder picker, old folder browser, Explorer, and the real `Seekbeam.exe` driven by double Ctrl | `tools/Seekbeam.DialogCheck` | **36/36 checks**: every dialog closed by **Cancel** (never validated), Save As kept its typed name, test tree unchanged (SHA-256) — §7.4 |
 
 **Conclusion** (§10): high confidence that Seekbeam performs no modifying operation on source files, within the limits set out in §8.
 
@@ -47,6 +49,9 @@ Full review of the 67 shipped C# files (≈ 10,800 lines):
 | `Seekbeam.Extraction` (25 files, 8 extractors, CFB reader) | — | **none** (IL: 0 calls, 0 P/Invokes) | reads only the `Stream` it is given; ZIP in `ZipArchiveMode.Read`, entries in memory, never `ExtractToFile`; XML with `DtdProcessing.Prohibit`, `XmlResolver = null` |
 | `Seekbeam.ExtractorHost` | Program.cs | **none** | stdin/stdout; `PROCESS_MODE_BACKGROUND_BEGIN`; receives handles only, refuses any handle with a write right; reports its own token isolation |
 | `Seekbeam.App` (WPF) | 18 files | **none** (IL: 0 calls) | shell actions delegated to Windows (§5), `HKCU\…\Run` registry key, clipboard; "About" links opened by `ShellActions.OpenLink`, which only accepts pages under the project URL (never a local path); the launcher's content-state dot is read from the databases (read-only) |
+| `Seekbeam.Core/Indexing` (2026-11-26) | FolderIndexPlanner; folder-index branch of NameIndexer, DirectoryScanner, ScopeRules, RootWatcher | no | plans roots only; the walk reads folder listings through SourceFileAccess (files skipped, never opened); watching with `FILE_NOTIFY_CHANGE_DIR_NAME`; `DriveInfo` (`Name`, `DriveType`, `IsReady`) only |
+| `Seekbeam.Core/Search`, `SourceAccess` (2026-11-26) | PathCompleter, NetShares | no | typed absolute path listed through `SourceFileAccess.CreateDirectoryReader` (≤ 20,000 entries); `NetShareEnum` level 1 returns share names, no handle |
+| `Seekbeam.App` (2026-11-26) | NavigationTargets, ExplorerShell, DialogKeyRouter, Win32.Windows, LauncherWindow | **none** (IL: 0 calls) | messages to another process's dialog: `WM_GETTEXT`/`WM_SETTEXT` (with timeout), `WM_NEXTDLGCTL`, Enter **posted** to the file-name box with a folder path ending with `\` whose existence is checked just before; `SendInput` of Unicode characters (Esc gives typed letters back to the list); Explorer navigated by `IShellWindows.Navigate2`. Never a click on OK, never a file name of a non-existing path: the dialog navigates, it is never validated |
 
 ## 4. Write operations identified (IL inventory, `artifacts/audit/il-inventory.md`)
 
@@ -58,7 +63,7 @@ Full review of the 67 shipped C# files (≈ 10,800 lines):
 | W4 | `SeekbeamStorage.OpenAppend` | logs | `<DataRoot>\logs` | no | same |
 | W5 | `SeekbeamStorage.TryDelete`, `CleanTemp`, `DeleteAllOwnedData` → `File.Delete` | retired segments, temporary files, purge | DataRoot | no | `Resolve` on every path (including enumerated ones) |
 | W6 | `SeekbeamStorage.OpenDatabase` → `SqliteConnection` | catalog.db, content.db (+ -wal/-shm) | `<DataRoot>\db` | no | path from `Resolve`; `temp_store=MEMORY`; `sqlite3_win32_set_directory` → `<DataRoot>\tmp` |
-| W7 | `SandboxProvisioning.GrantAppContainerRead` → `FileSystemAclExtensions.SetAccessControl` | let the sandbox load its code | Seekbeam program folder | **refused if it does** | `ScopeRules.TouchesScope`; only adds one read ACE, once |
+| W7 | `SandboxProvisioning.GrantAppContainerRead` → `FileSystemAclExtensions.SetAccessControl` | let the sandbox load its code | Seekbeam program folder | **refused if it does** | `ScopeRules.TouchesScope` (locations); the program folder is excluded from the folder index (TD-21, found by code review) so it is never inside the perimeter; only adds one read ACE, once |
 | W8 | `SandboxProvisioning.Ensure` → `userenv!CreateAppContainerProfile` | AppContainer profile | `%LOCALAPPDATA%\Packages\seekbeam.extractorhost`, HKCU mapping | **refused if it does** | same check; Windows-managed object; removed by `--purge-data` |
 | E1 | `SandboxLauncher.Start` → `CreateProcessW` / `CreateProcessAsUserW` | extraction process | — (no file) | — | Seekbeam executable next to Seekbeam.exe; AppContainer or low integrity; suspended, then Job Object; no child process |
 | E3 | `SourceFileAccess.DuplicateReadHandleInto` → `DuplicateHandle` | hand a source to the sandbox | source | **read-only** | access mask `FILE_GENERIC_READ`; only caller of `SourceNative.DuplicateHandle` (IL check) |
@@ -66,7 +71,7 @@ Full review of the 67 shipped C# files (≈ 10,800 lines):
 | E2 | `SourceFileAccess.OpenRead` → `new FileStream(SafeFileHandle, FileAccess.Read)` | read | source | **read-only** | the handle is opened with `GENERIC_READ`: the kernel refuses writes |
 | N1 | `SourceNative.CreateFileW` (P/Invoke) | open source | source | read-only | called only by `SourceNative.Open`, constant read masks |
 
-P/Invokes: Seekbeam.Core 48, Seekbeam.dll 32, ExtractorHost 6. All are on the reviewed allow-list (hooks, hotkeys, windows, DWM, tray, icons, shell, Job Objects, system probes, file reads, sandbox: process creation, token restriction, AppContainer profile, handle duplication). Sensitive entry points are pinned to one declaring type (IL check): `CreateFileW` and `DuplicateHandle` to `SourceNative`, `CreateProcessW` / `CreateProcessAsUserW` / `SetTokenInformation` to `SandboxLauncher`, `CreateAppContainerProfile` / `DeleteAppContainerProfile` to `SandboxProvisioning`. **None** of the banned entry points (`WriteFile`, `DeleteFile`, `MoveFile*`, `SetFile*`, `NtSetInformationFile`, `NtCreateFile`, `DeviceIoControl`, `SHFileOperation`, `Set*Security*`…) is declared.
+P/Invokes: Seekbeam.Core 50, Seekbeam.dll 49, ExtractorHost 6 (2026-11-26: +`NetShareEnum`/`NetApiBufferFree` in Core; +17 user32 entry points in the App for window recognition, control text, focus, key translation and input replay, all reviewed and justified in the allow-list). All are on the reviewed allow-list (hooks, hotkeys, windows, DWM, tray, icons, shell, Job Objects, system probes, file reads, sandbox: process creation, token restriction, AppContainer profile, handle duplication). Sensitive entry points are pinned to one declaring type (IL check): `CreateFileW` and `DuplicateHandle` to `SourceNative`, `CreateProcessW` / `CreateProcessAsUserW` / `SetTokenInformation` to `SandboxLauncher`, `CreateAppContainerProfile` / `DeleteAppContainerProfile` to `SandboxProvisioning`. **None** of the banned entry points (`WriteFile`, `DeleteFile`, `MoveFile*`, `SetFile*`, `NtSetInformationFile`, `NtCreateFile`, `DeviceIoControl`, `SHFileOperation`, `Set*Security*`…) is declared.
 
 **Third-party dependencies** (informational, IL analyzed): PdfPig contains a single write site (`PdfMerger.OpenReadShared` → `FileStream`), unreachable because Seekbeam does not merge PDFs and only passes read-only streams. Microsoft.Data.Sqlite writes only to the open database, whose path comes from SeekbeamStorage. SQLitePCLRaw (154 P/Invokes into e_sqlite3) writes only to the open database files and to the configured temporary directory.
 
@@ -89,6 +94,15 @@ P/Invokes: Seekbeam.Core 48, Seekbeam.dll 32, ExtractorHost 6. All are on the re
 | Files from the Internet and e-mail parsed without being opened | medium | Downloads excluded from content extraction by default, with an explanation before re-enabling it (TD-18) |
 | Portable mode: the AppContainer ACE on the program folder would be inherited by `Data\` (index and extracted text readable by any AppContainer) | high (found before release) | inheritance blocked at the DataRoot before any grant, AppContainer ACEs removed, existing exposure repaired at start-up; test `PortableDataDirectoryIsNeverReadableByAppContainers` |
 | Integrity test silently limited by the default depth of 10: the > 260-character path was no longer extracted | low (test coverage) | integrity dataset indexed with unlimited depth; 20/20 markers again |
+| "Go to folder" could make a Save As dialog **save** (overwrite) a file | high (TD-20) | never a click on OK; only a folder path ending with `\`, checked to exist just before, in the file-name box, then Enter posted: the dialog navigates. A folder that vanished meanwhile only shows the dialog's own error. Found in the lab (a click with an unrecognised box saved), then verified on the real dialogs: every dialog ends **Cancel** (§7.4) |
+| In a folder picker, OK *selects* the folder and closes the dialog | medium (functional) | Enter instead of OK (navigates); the box is left as the dialog sets it |
+| With the focus in the file list (direct typing), Enter posted to the box was ignored | medium (functional, found by DialogCheck) | `WM_NEXTDLGCTL` gives the box the focus first; re-verified |
+| The folder index lists every fixed drive: many more sources are read | medium | listings only, through `SourceFileAccess` with the same masks; files never recorded nor opened; Windows, caches and build folders excluded; integrity test on a whole tree |
+| Keys swallowed in other applications (direct typing) | low (functional) | only in a recognised dialog whose FILE LIST has the focus, never in a text box, never injected keys; switch in Settings |
+| Sandbox read ACE on Seekbeam's program folder, which the folder index walks (C:\Program Files) | high (§29.3, found by code review) | the program folder is always excluded from the folder index (`NameIndexer.ExcludedFromFolderIndex`), so the ACE is never set inside the perimeter; test `ProgramFolderIsNeverWalked` |
+| Removing the folder index (a whole drive) in one huge transaction | medium (§13, found by code review) | deletion by root, 20,000 rows per transaction, resumable after a crash; test `RemovingTheFolderIndexDeletesInSmallTransactions` |
+| A burst of new folders under a drive re-walked the whole drive at high priority | medium (§14, found by code review) | folder-index events are rescanned folder by folder (shallow), at reconciliation priority during a burst; a watcher overflow re-walks at the lowest priority, at most once an hour |
+| Links of a location into a folder-index area were no longer followed | medium (functional, found by code review) | link targets are checked against the locations only; test `LinksOfALocationAreStillFollowedIntoTheFolderIndexArea` |
 
 ## 6. Test results (run of 2026-11-22)
 
@@ -100,6 +114,8 @@ P/Invokes: Seekbeam.Core 48, Seekbeam.dll 32, ExtractorHost 6. All are on the re
   - `RealProcessKilledDuringIndexingThenRecoveredModifiesNothing`: **0 modifications**, crash detected, clean `--exit`.
   - Static analysis (4 tests) + analyzer self-test.
 - Fields compared: SHA-256, size, attributes, creation, last write, SDDL (DACL, owner, group), alternate data streams, reparse target, existence (creations, deletions, renames). `LastAccessTime` is reported separately (§8.1).
+
+**Run of 2026-11-26** (folder index and "go to folder", TD-20/TD-21): `Seekbeam.Core.Tests` **196/196** (including the folder index end to end on a real tree: files never recorded, exclusions, AppData reached, directory events, learning, location added/removed, switch-off, catalog v2 → v3 migration), `Seekbeam.Extraction.Tests` **101/101**, `Seekbeam.Immutability.Tests` **10/10**: the new `FolderIndexAndPathCompletionModifyNothing` walked 32 folders, completed 89 paths, learned a folder outside the tree: **0 modifications** on the walked tree (65 entries), the learned folder (5) and the external target (2); the static analysis passes with the 19 new P/Invokes reviewed.
 
 ## 7. Dynamic verification
 
@@ -123,6 +139,9 @@ It attributes each operation (Create, Write, SetInfo, Delete, Rename) to the See
 
 ### 7.3 Static / dynamic cross-check
 The static inventory allows writes only under DataRoot. The dynamic observations show no write under the source root, and the process writes measured by the benchmark (`GetProcessIoCounters`) match the size of the databases and segments in the data folder. Both approaches agree.
+
+### 7.4 Real dialogs — `tools/Seekbeam.DialogCheck` (2026-11-26)
+The tool opens real Windows dialogs (Open, Save As, folder picker, old folder browser) and an Explorer window, drives them with the very code the launcher ships, then closes every dialog with **Cancel** and checks its result. With `--app`, it also drives the real `Seekbeam.exe` (isolated profile) with a simulated double Ctrl and typed queries. Every dialog returned **Cancel**: none was ever validated; the Save As dialog kept the typed name in every case; the test tree (files and folders, SHA-256) is unchanged. Full results: [DIALOG_NAVIGATION_CHECK.md](DIALOG_NAVIGATION_CHECK.md).
 
 ## 8. Limits of the guarantee
 

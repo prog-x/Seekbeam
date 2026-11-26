@@ -149,6 +149,49 @@
                     </GroupBox>
                 </DockPanel>
             </TabItem>
+            <TabItem x:Name="NavigationTab" Header="{l:Tr Tab_Navigation}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <GroupBox Header="{l:Tr Set_NavGroup}">
+                            <StackPanel>
+                                <CheckBox x:Name="NavDialogs" Content="{l:Tr Set_NavDialogs}" Checked="NavDialogs_Changed" Unchecked="NavDialogs_Changed" />
+                                <StackPanel x:Name="NavDialogOptions" Margin="20,0,0,0">
+                                    <CheckBox x:Name="NavTyping" Content="{l:Tr Set_NavTyping}" ToolTip="{l:Tr Set_NavTypingTip}" />
+                                    <CheckBox x:Name="NavQuickSwitch" Content="{l:Tr Set_NavQuickSwitch}" />
+                                </StackPanel>
+                                <CheckBox x:Name="NavExplorer" Content="{l:Tr Set_NavExplorer}" />
+                                <CheckBox x:Name="NavRecent" Content="{l:Tr Set_NavRecent}" />
+                                <CheckBox x:Name="NavPathCompletion" Content="{l:Tr Set_NavPathCompletion}" />
+                                <TextBlock Text="{l:Tr Set_NavNote}" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="{l:Tr Set_FiGroup}" Margin="0,10,0,0">
+                            <StackPanel>
+                                <CheckBox x:Name="FiEnabled" Content="{l:Tr Set_FiEnabled}" Checked="FiEnabled_Changed" Unchecked="FiEnabled_Changed" />
+                                <StackPanel x:Name="FiOptions" Margin="20,0,0,0">
+                                    <CheckBox x:Name="FiDrives" Content="{l:Tr Set_FiDrives}" />
+                                    <CheckBox x:Name="FiLearn" Content="{l:Tr Set_FiLearn}" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="{l:Tr Set_FiDepth}" Width="240" VerticalAlignment="Center" />
+                                        <TextBox x:Name="FiDepth" Width="60" />
+                                    </StackPanel>
+                                    <TextBlock Text="{l:Tr Set_FiExcludes}" Margin="0,6,0,2" />
+                                    <TextBox x:Name="FiExcludes" AcceptsReturn="True" Height="70" VerticalScrollBarVisibility="Auto" />
+                                    <TextBlock Text="{l:Tr Set_FiExcludedPaths}" Margin="0,6,0,2" />
+                                    <TextBox x:Name="FiExcludedPaths" AcceptsReturn="True" Height="44" VerticalScrollBarVisibility="Auto" />
+                                    <TextBlock Text="{l:Tr Set_FiLower}" Margin="0,6,0,2" />
+                                    <TextBox x:Name="FiLower" AcceptsReturn="True" Height="44" VerticalScrollBarVisibility="Auto" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <Button Content="{l:Tr Set_FiForget}" Click="FiForget_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock x:Name="FiStatus" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}" Margin="0,6,0,0" />
+                                <TextBlock Text="{l:Tr Set_FiNote}" TextWrapping="Wrap" Foreground="{DynamicResource SubFgBrush}" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
             <TabItem Header="{l:Tr Tab_Content}">
                 <StackPanel Margin="10">
                     <CheckBox x:Name="ContentEnabled" Content="{l:Tr Set_ContentEnabled}" />

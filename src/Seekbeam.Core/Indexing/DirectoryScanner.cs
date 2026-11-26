@@ -58,6 +58,7 @@ public sealed class DirectoryScanner : IDisposable
         {
             foreach (var d in disk)
             {
+                if (root.FoldersOnly && !d.IsDirectory) continue; // folder index: names of folders only (TD-21)
                 string full = EntryStore.Combine(dirPath, d.Name);
                 if (scope.IsExcluded(root, d.Name, full, d.Attributes)) continue;
                 var kind = d.IsDirectory ? EntryKind.Directory : EntryKind.File;
@@ -72,6 +73,11 @@ public sealed class DirectoryScanner : IDisposable
                         Counters.Deleted += _writer.Delete(b, old.Id, old.Kind, id => QueueContentDelete(b, content, id));
                         Insert(b, dir, root, content, d, kind, childDepth, traverse, childPriority, contentPriority, full);
                         continue;
+                    }
+                    if (root.FoldersOnly && FolderXFlags(root, full) is var xf && xf != (old.XFlags & NameIndex.NameIndexManager.XFlagsMask))
+                    {
+                        _writer.SetXFlags(b, old, dir.Id, xf); // "ranked lower" rules changed
+                        old = old with { XFlags = xf };
                     }
                     bool changed = old.Size != d.Size || old.MTime != d.LastWriteTime || old.Attrs != (long)d.Attributes || old.FileId != d.FileId || old.CTime != d.CreationTime;
                     if (changed)
@@ -91,9 +97,10 @@ public sealed class DirectoryScanner : IDisposable
                 else Insert(b, dir, root, content, d, kind, childDepth, traverse, childPriority, contentPriority, full);
             }
         }
-        // Remember directories whose content is left unexplored because of MaxDepth, so the UI can tell the user.
+        // Remember directories whose content is left unexplored because of MaxDepth, so the UI can tell the user
+        // (not for the folder index: its depth limit is a design bound, not something the user must act on).
         int hidden = 0;
-        if (depthLimited)
+        if (depthLimited && !root.FoldersOnly)
             foreach (var d in disk)
                 if (!scope.IsExcluded(root, d.Name, EntryStore.Combine(dirPath, d.Name), d.Attributes)) hidden++;
         _writer.SetDepthLimited(b, dir.Id, dir.RootId, hidden);
@@ -106,7 +113,8 @@ public sealed class DirectoryScanner : IDisposable
     private void Insert(CatalogWriter.Batch b, EntryInfo dir, RootScope root, ContentEligibility content, DiskChild d, EntryKind kind, int depth,
         bool traverse, QueuePriority childPriority, QueuePriority contentPriority, string fullPath)
     {
-        long id = _writer.Insert(b, dir.Id, dir.RootId, d.Name, kind, d.Size, d.LastWriteTime, d.CreationTime, (long)d.Attributes, d.FileId, depth);
+        long id = _writer.Insert(b, dir.Id, dir.RootId, d.Name, kind, d.Size, d.LastWriteTime, d.CreationTime, (long)d.Attributes, d.FileId, depth,
+            FolderXFlags(root, fullPath));
         Counters.Added++;
         if (kind == EntryKind.Directory)
         {
@@ -118,6 +126,10 @@ public sealed class DirectoryScanner : IDisposable
             Counters.ContentQueued++;
         }
     }
+
+    /// <summary>entries.xflags of a new entry: Outside for the folder index, plus Lowered for Program Files, AppData…</summary>
+    public static long FolderXFlags(RootScope root, string fullPath) =>
+        !root.FoldersOnly ? 0 : (long)NameIndex.EntryFlags.Outside | (root.IsLowered(fullPath) ? (long)NameIndex.EntryFlags.Lowered : 0);
 
     private void QueueContentDelete(CatalogWriter.Batch b, ContentEligibility content, long id)
     {

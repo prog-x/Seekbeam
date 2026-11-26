@@ -13,6 +13,12 @@ public sealed class ParsedQuery
     public List<byte[]> Excludes { get; } = [];
     public List<byte[]> Extensions { get; } = [];  // normalized, without dot
     public List<byte[]> PathFilters { get; } = []; // in:xxx — must match an ancestor directory name
+    /// <summary>
+    /// Path chains typed with a separator ("src\seek", "proj/seek/doc"): indexes into <see cref="Tokens"/>, each token having
+    /// to occur in a path segment strictly below the segment of the previous one. At most <see cref="MaxChains"/>.
+    /// </summary>
+    public List<int[]> Chains { get; } = [];
+    public const int MaxChains = 4;
     public KindFilter Kind { get; set; } = KindFilter.Any;
     /// <summary>Full query normalized (tokens joined by a space) for exact-name detection.</summary>
     public byte[] Joined { get; set; } = [];
@@ -59,16 +65,36 @@ public static class QueryParser
                     }
                 }
                 if (word.Length > 1 && word[0] == '-') { q.Excludes.Add(Normalizer.NormalizeToBytes(word.AsSpan(1))); continue; }
+                if (word.IndexOfAny(['\\', '/']) >= 0)
+                {
+                    // Path fragments: "src\seek" = "seek" in a folder (or name) below a folder matching "src".
+                    var chain = new List<int>();
+                    foreach (var part in word.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        int idx = AddToken(q, Normalizer.NormalizeToBytes(part));
+                        if (idx >= 0 && (chain.Count == 0 || chain[^1] != idx)) chain.Add(idx);
+                    }
+                    if (chain.Count > 1 && q.Chains.Count < ParsedQuery.MaxChains) q.Chains.Add([.. chain]);
+                    continue;
+                }
             }
-            var t = Normalizer.NormalizeToBytes(word);
-            if (t.Length == 0) continue;
-            if (q.Tokens.Count < ParsedQuery.MaxTokens && !q.Tokens.Any(x => x.AsSpan().SequenceEqual(t))) q.Tokens.Add(t);
+            AddToken(q, Normalizer.NormalizeToBytes(word));
         }
         // Longest tokens first: the most selective scan runs first and dominates scoring stability.
         var joined = new List<byte>();
         foreach (var t in q.Tokens) { if (joined.Count > 0) joined.Add((byte)' '); joined.AddRange(t); }
         q.Joined = [.. joined];
         return q;
+    }
+
+    /// <summary>Adds a token (deduplicated) and returns its index, or -1 if empty or over the limit.</summary>
+    private static int AddToken(ParsedQuery q, byte[] t)
+    {
+        if (t.Length == 0) return -1;
+        for (int i = 0; i < q.Tokens.Count; i++) if (q.Tokens[i].AsSpan().SequenceEqual(t)) return i;
+        if (q.Tokens.Count >= ParsedQuery.MaxTokens) return -1;
+        q.Tokens.Add(t);
+        return q.Tokens.Count - 1;
     }
 
     private static IEnumerable<(string Word, bool Quoted)> Split(string s)

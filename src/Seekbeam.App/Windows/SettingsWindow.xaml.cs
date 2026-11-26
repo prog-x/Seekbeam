@@ -68,6 +68,14 @@ public partial class SettingsWindow : Window
         Learning.IsChecked = c.Privacy.Learning; History.IsChecked = c.Privacy.QueryHistory; Discovery.IsChecked = c.Discovery.Enabled; RedactPaths.IsChecked = c.Logging.RedactPaths;
         WatchEnabled.IsChecked = c.Watch.Enabled; ReconcileStartup.IsChecked = c.Watch.ReconcileAtStartup; ReconcileHours.Text = c.Watch.ReconcileIntervalHours.ToString();
         DataDir.Text = _engine.Storage.DataRoot;
+        var n = c.Navigation;
+        NavDialogs.IsChecked = n.DialogIntegration; NavTyping.IsChecked = n.DirectTyping; NavQuickSwitch.IsChecked = n.QuickSwitch;
+        NavExplorer.IsChecked = n.Explorer; NavRecent.IsChecked = n.RecentFolders; NavPathCompletion.IsChecked = n.PathCompletion;
+        var fi = c.FolderIndex;
+        FiEnabled.IsChecked = fi.Enabled; FiDrives.IsChecked = fi.FixedDrives; FiLearn.IsChecked = fi.LearnFolders; FiDepth.Text = fi.MaxDepth.ToString();
+        FiExcludes.Text = Lines(fi.Excludes); FiExcludedPaths.Text = Lines(fi.ExcludedPaths); FiLower.Text = Lines(fi.LowerRanked);
+        NavDialogs_Changed(this, new RoutedEventArgs()); FiEnabled_Changed(this, new RoutedEventArgs());
+        ShowFolderIndexStatus();
         LanguageBox.Items.Add(L.T("Lang_Auto"));
         foreach (var (_, native) in L.Languages) LanguageBox.Items.Add(native);
         int li = L.Languages.ToList().FindIndex(l => l.Code.Equals(c.General.Language, StringComparison.OrdinalIgnoreCase));
@@ -238,6 +246,12 @@ public partial class SettingsWindow : Window
         c.Apps.RunCommands = AppsRunCommands.IsChecked == true; c.Apps.Aliases = [.. _aliases];
         c.Privacy.Learning = Learning.IsChecked == true; c.Privacy.QueryHistory = History.IsChecked == true; c.Discovery.Enabled = Discovery.IsChecked == true; c.Logging.RedactPaths = RedactPaths.IsChecked == true;
         c.Watch.Enabled = WatchEnabled.IsChecked == true; c.Watch.ReconcileAtStartup = ReconcileStartup.IsChecked == true; c.Watch.ReconcileIntervalHours = Int(ReconcileHours.Text, 24);
+        c.Navigation.DialogIntegration = NavDialogs.IsChecked == true; c.Navigation.DirectTyping = NavTyping.IsChecked == true;
+        c.Navigation.QuickSwitch = NavQuickSwitch.IsChecked == true; c.Navigation.Explorer = NavExplorer.IsChecked == true;
+        c.Navigation.RecentFolders = NavRecent.IsChecked == true; c.Navigation.PathCompletion = NavPathCompletion.IsChecked == true;
+        c.FolderIndex.Enabled = FiEnabled.IsChecked == true; c.FolderIndex.FixedDrives = FiDrives.IsChecked == true; c.FolderIndex.LearnFolders = FiLearn.IsChecked == true;
+        c.FolderIndex.MaxDepth = Int(FiDepth.Text, 16); c.FolderIndex.Excludes = FromLines(FiExcludes.Text);
+        c.FolderIndex.ExcludedPaths = FromLines(FiExcludedPaths.Text); c.FolderIndex.LowerRanked = FromLines(FiLower.Text);
         try
         {
             _engine.Config.Save(c);
@@ -322,4 +336,26 @@ public partial class SettingsWindow : Window
     private void ClearHistory_Click(object sender, RoutedEventArgs e) { _engine.Usage.ClearHistory(); MessageBox.Show(L.T("Set_HistoryCleared"), "Seekbeam"); }
     private void ResetLearning_Click(object sender, RoutedEventArgs e) { _engine.Usage.ResetLearning(); MessageBox.Show(L.T("Set_LearningReset"), "Seekbeam"); }
     private void PurgeLogs_Click(object sender, RoutedEventArgs e) { Log.PurgeLogs(); MessageBox.Show(L.T("Set_LogsPurged"), "Seekbeam"); }
+
+    // ------------------------------------------------------------------ dialogs & folders (TD-20, TD-21)
+
+    private void NavDialogs_Changed(object sender, RoutedEventArgs e) => NavDialogOptions.IsEnabled = NavDialogs.IsChecked == true;
+    private void FiEnabled_Changed(object sender, RoutedEventArgs e) => FiOptions.IsEnabled = FiEnabled.IsChecked == true;
+
+    private void FiForget_Click(object sender, RoutedEventArgs e)
+    {
+        _engine.Indexer.ForgetLearnedFolders();
+        MessageBox.Show(this, L.T("Set_FiForgotten"), "Seekbeam");
+    }
+
+    private void ShowFolderIndexStatus()
+    {
+        var walked = _engine.Indexer.FolderIndexReconciledUtc;
+        Task.Run(() => _engine.Entries.Counts().OutsideDirs).ContinueWith(t =>
+        {
+            if (t.IsFaulted) return;
+            FiStatus.Text = L.F("Set_FiStatus", t.Result,
+                walked is { } w ? w.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture) : L.T("Set_FiNever"));
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
 }

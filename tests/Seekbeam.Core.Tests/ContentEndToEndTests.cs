@@ -40,7 +40,7 @@ public sealed class ContentEndToEndTests : IDisposable
         new ConfigStore(storage).Update(c => { c.Roots = [new RootConfig { Path = src }]; c.General.FirstRunCompleted = true; c.GlobalExcludes = []; configure?.Invoke(c); });
         _engine = new SeekbeamEngine(storage, new EngineOptions
         {
-            Unthrottled = true, EnableApps = false, EnableRecentItems = false,
+            Unthrottled = true, EnableApps = false, EnableRecentItems = false, FolderIndexDrives = () => [],
             SupportedExtensions = () => ["txt", "md", "html", "rtf", "csv", "json"],
             ExtractionFactory = () => new ExtractorClient(HostPath),
         });

@@ -2,6 +2,18 @@ namespace Seekbeam.Core.Search;
 
 public enum ResultKind { File, Folder, App }
 
+/// <summary>Where a result comes from (shown next to folders in the "go to folder" mode).</summary>
+public enum ResultOrigin { Index, FolderIndex, Disk, Explorer, Recent, Favorite }
+
+/// <summary>What a launcher search is for.</summary>
+public enum SearchPurpose
+{
+    /// <summary>Open or launch something: applications, files, folders of the indexed locations (folder index as a fallback).</summary>
+    Launch,
+    /// <summary>"Go to folder" for an Open/Save dialog or an Explorer window: folders first (folder index included), no apps.</summary>
+    Navigate,
+}
+
 public sealed class SearchRequest
 {
     public string Query { get; init; } = "";
@@ -9,6 +21,11 @@ public sealed class SearchRequest
     public bool AllowFuzzy { get; init; } = true;
     public bool IncludeApps { get; init; } = true;
     public bool IncludeFiles { get; init; } = true;
+    public SearchPurpose Purpose { get; init; } = SearchPurpose.Launch;
+    /// <summary>An absolute path ("C:\Win", "\\server\") is completed from the disk instead of searched (TD-20).</summary>
+    public bool PathCompletion { get; init; }
+    /// <summary>Include hidden entries in path completion.</summary>
+    public bool IncludeHidden { get; init; }
 }
 
 public readonly record struct Highlight(int Start, int Length);
@@ -16,6 +33,7 @@ public readonly record struct Highlight(int Start, int Length);
 public sealed class SearchResult
 {
     public ResultKind Kind { get; init; }
+    public ResultOrigin Origin { get; init; }
     public long EntryId { get; init; }
     public string Name { get; init; } = "";
     public string FullPath { get; init; } = "";

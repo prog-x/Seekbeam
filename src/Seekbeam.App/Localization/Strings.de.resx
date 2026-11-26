@@ -367,4 +367,50 @@ Den Inhalt von „Downloads“ trotzdem indizieren?</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>Der Alias „{0}“ hat kein Ziel.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>Das Schlüsselwort „{0}“ wird von mehreren Aliasen verwendet.</value></data>
   <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>Warteschlange: {0:N0} Dateien · {1:N0} zurückgestellt (Laufwerk nicht verfügbar oder Datei gesperrt)</value></data>
+  <data name="Launcher_HintDialog" xml:space="preserve"><value>Zu einem Ordner wechseln: Teile seines Pfads (proj kunde) oder C:\…</value></data>
+  <data name="Launcher_HintExplorer" xml:space="preserve"><value>In diesem Fenster zu einem Ordner wechseln: Teile seines Pfads oder C:\…</value></data>
+  <data name="Launcher_KeysDialog" xml:space="preserve"><value>↵ wechseln · Strg+G letzter Explorer-Ordner · Strg+↵ im Explorer öffnen · Esc zurück</value></data>
+  <data name="Launcher_KeysNavigate" xml:space="preserve"><value>↵ wechseln · Strg+↵ im Explorer öffnen · Esc zurück</value></data>
+  <data name="Launcher_NavLocations" xml:space="preserve"><value>Im Explorer geöffnete Ordner, Favoriten und zuletzt verwendete Ordner · tippen zum Suchen</value></data>
+  <data name="Launcher_NavNoLocation" xml:space="preserve"><value>Teile eines Ordnerpfads eingeben, oder einen absoluten Pfad (C:\…, \\server\…)</value></data>
+  <data name="NavTarget_FileOpen" xml:space="preserve"><value>Zum Ordner wechseln · Dialog „Öffnen“</value></data>
+  <data name="NavTarget_FileSave" xml:space="preserve"><value>Zum Ordner wechseln · Dialog „Speichern“ (der eingegebene Dateiname bleibt erhalten)</value></data>
+  <data name="NavTarget_FolderPicker" xml:space="preserve"><value>Zum Ordner wechseln · Ordnerauswahl</value></data>
+  <data name="NavTarget_LegacyFolderBrowser" xml:space="preserve"><value>Alter Ordnerauswahl-Dialog: der gewählte Pfad wird in die Zwischenablage kopiert</value></data>
+  <data name="NavTarget_Explorer" xml:space="preserve"><value>Zum Ordner wechseln · dieses Explorer-Fenster</value></data>
+  <data name="Nav_NoExplorer" xml:space="preserve"><value>Kein Explorer-Fenster ist geöffnet.</value></data>
+  <data name="Nav_TargetGone" xml:space="preserve"><value>Das Fenster wurde inzwischen geschlossen.</value></data>
+  <data name="Nav_FolderMissing" xml:space="preserve"><value>Dieser Ordner existiert nicht mehr: {0}</value></data>
+  <data name="Nav_BlockedCopied" xml:space="preserve"><value>Dieses Fenster gehört zu einer als Administrator ausgeführten Anwendung: Seekbeam kann es nicht steuern. Pfad kopiert, mit Strg+V einfügen: {0}</value></data>
+  <data name="Nav_UnsupportedCopied" xml:space="preserve"><value>Dieser Dialog kann nicht gesteuert werden. Pfad kopiert, mit Strg+V einfügen: {0}</value></data>
+  <data name="Origin_FolderIndex" xml:space="preserve"><value>Ordner · außerhalb des Index</value></data>
+  <data name="Origin_Disk" xml:space="preserve"><value>Ordner · auf dem Datenträger</value></data>
+  <data name="Origin_Explorer" xml:space="preserve"><value>Im Explorer geöffnet</value></data>
+  <data name="Origin_Recent" xml:space="preserve"><value>Zuletzt verwendeter Ordner</value></data>
+  <data name="Origin_Favorite" xml:space="preserve"><value>Favoritenordner</value></data>
+  <data name="Tab_Navigation" xml:space="preserve"><value>Dialoge &amp; Ordner</value></data>
+  <data name="Set_NavGroup" xml:space="preserve"><value>Dialoge „Öffnen“ / „Speichern“ und Explorer</value></data>
+  <data name="Set_NavDialogs" xml:space="preserve"><value>Zweimal Strg in einem Dialog „Öffnen“, „Speichern“ oder einer Ordnerauswahl: in diesem Dialog zu einem Ordner wechseln</value></data>
+  <data name="Set_NavTyping" xml:space="preserve"><value>Tippen in der Dateiliste eines Dialogs öffnet Seekbeam (Esc gibt die Buchstaben an die Liste zurück)</value></data>
+  <data name="Set_NavTypingTip" xml:space="preserve"><value>Ersetzt den „Sprung zum Namen, der mit diesen Buchstaben beginnt“ der Liste. Eingabefelder (Dateiname, Adresse, Suche) sind nie betroffen.</value></data>
+  <data name="Set_NavQuickSwitch" xml:space="preserve"><value>Quick Switch: Strg+G springt zum Ordner des letzten Explorer-Fensters; im Explorer geöffnete Ordner werden vorgeschlagen</value></data>
+  <data name="Set_NavExplorer" xml:space="preserve"><value>Zweimal Strg in einem Explorer-Fenster: in diesem Fenster zu einem Ordner wechseln</value></data>
+  <data name="Set_NavRecent" xml:space="preserve"><value>Favoriten und zuletzt verwendete Ordner vorschlagen, solange nichts eingegeben ist</value></data>
+  <data name="Set_NavPathCompletion" xml:space="preserve"><value>Einen eingegebenen absoluten Pfad vom Datenträger vervollständigen (C:\Win…, \\server\…, %APPDATA%\…)</value></data>
+  <data name="Set_NavNote" xml:space="preserve"><value>Seekbeam navigiert nur: es bestätigt nie einen Dialog und öffnet oder speichert daher nie selbst eine Datei. Dialoge von als Administrator ausgeführten Anwendungen und der alte Ordnerbaum-Dialog können nicht gesteuert werden: der Pfad wird dann in die Zwischenablage kopiert.</value></data>
+  <data name="Set_FiGroup" xml:space="preserve"><value>Ordner außerhalb der indizierten Orte</value></data>
+  <data name="Set_FiEnabled" xml:space="preserve"><value>Namen der Ordner außerhalb der indizierten Orte indizieren (nur Ordner: keine Dateien, kein Inhalt)</value></data>
+  <data name="Set_FiDrives" xml:space="preserve"><value>Alle lokalen Festplatten</value></data>
+  <data name="Set_FiLearn" xml:space="preserve"><value>Außerhalb des Index verwendete Ordner (Netzwerkfreigaben, Wechseldatenträger), mit einigen Ebenen darunter</value></data>
+  <data name="Set_FiDepth" xml:space="preserve"><value>Maximale Tiefe</value></data>
+  <data name="Set_FiExcludes" xml:space="preserve"><value>Ausgeschlossene Ordner (Namen oder Muster, einer pro Zeile)</value></data>
+  <data name="Set_FiExcludedPaths" xml:space="preserve"><value>Ausgeschlossene absolute Ordner (einer pro Zeile, %VARIABLEN% erlaubt)</value></data>
+  <data name="Set_FiLower" xml:space="preserve"><value>Niedriger eingestufte Ordner (absolute Ordner oder Ordnernamen)</value></data>
+  <data name="Set_FiForget" xml:space="preserve"><value>Gelernte Ordner vergessen</value></data>
+  <data name="Set_FiForgotten" xml:space="preserve"><value>Gelernte Ordner vergessen.</value></data>
+  <data name="Set_FiStatus" xml:space="preserve"><value>{0:N0} Ordner außerhalb der Orte · letzter vollständiger Durchlauf: {1}</value></data>
+  <data name="Set_FiNever" xml:space="preserve"><value>noch nicht</value></data>
+  <data name="Set_FiNote" xml:space="preserve"><value>Es werden nur Ordnerlisten gelesen, mit der niedrigsten Priorität, nach den indizierten Orten; neue Ordner werden laufend verfolgt. Dort wird nie etwas geschrieben.</value></data>
+  <data name="Dash_FolderIndex" xml:space="preserve"><value>Ordnerindex (außerhalb der Orte): {0:N0} Ordner · letzter Durchlauf {1}</value></data>
+  <data name="Nav_TimeoutCopied" xml:space="preserve"><value>Der Dialog hat nicht rechtzeitig zum Ordner gewechselt (langsamer Ort?). Pfad kopiert, mit Strg+V einfügen: {0}</value></data>
 </root>

@@ -59,11 +59,18 @@ public sealed class RecentItemsMonitor : IDisposable
         });
     }
 
+    /// <summary>Called with a file opened outside the index (its folder may be learned by the folder index, TD-21).</summary>
+    public Action<string>? OutsideIndex { get; set; }
+
     /// <summary>Entry point shared with "file opened from Seekbeam".</summary>
     public void ReportOpened(string target)
     {
         if (!SourceFileAccess.FileExists(target)) return;
-        if (!_indexer.Scope.IsInScope(target, out _)) return;
+        if (!_indexer.Scope.IsInScope(target, out var root) || root!.FoldersOnly)
+        {
+            try { OutsideIndex?.Invoke(target); } catch (Exception ex) { Log.Debug("Discovery", ex.Message); }
+            return;
+        }
         TargetsDiscovered++;
         _indexer.Post(new DiscoverCommand(target));
         try { _onOpened(target); } catch (Exception ex) { Log.Debug("Discovery", ex.Message); }

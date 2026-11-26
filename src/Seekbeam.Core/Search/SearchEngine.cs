@@ -30,14 +30,20 @@ public sealed class SearchEngine
     public SearchResultSet Search(SearchRequest req, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
+        if (req.PathCompletion && PathCompleter.IsAbsolutePathQuery(req.Query))
+            return PathCompleter.Complete(req.Query, Math.Clamp(req.MaxResults, 1, 500), req.IncludeHidden || _config().IncludeHidden, ct);
         var q = QueryParser.Parse(req.Query);
         if (q.IsEmpty) return SearchResultSet.Empty;
         if (Interlocked.Increment(ref _active) == 1) SearchingChanged?.Invoke(true);
         try
         {
             var cfg = _config();
+            bool navigate = req.Purpose == SearchPurpose.Navigate;
             var opt = new NameSearchOptions
             {
+                // Folders outside the indexed locations: always for navigation and kind:folder, otherwise only to fill rows.
+                Outside = navigate || q.Kind == KindFilter.Folder ? OutsideMode.Include : OutsideMode.Fallback,
+                FoldersFirst = navigate,
                 MatchInPath = cfg.MatchInPath,
                 IncludeHidden = cfg.IncludeHidden,
                 IncludeSystem = cfg.IncludeSystem,
@@ -50,8 +56,8 @@ public sealed class SearchEngine
             };
             int k = Math.Clamp(req.MaxResults, 1, 500);
 
-            var apps = req.IncludeApps ? _apps.Search(q, opt, _usage.BoostForKey) : [];
-            var command = req.IncludeApps ? CommandWithArguments(req.Query, opt) : null;
+            var apps = req.IncludeApps && !navigate ? _apps.Search(q, opt, _usage.BoostForKey) : [];
+            var command = req.IncludeApps && !navigate ? CommandWithArguments(req.Query, opt) : null;
             NameSearcher.Outcome outcome = new();
             long indexed = 0;
             if (req.IncludeFiles)
@@ -97,6 +103,7 @@ public sealed class SearchEngine
                     results.Add(new SearchResult
                     {
                         Kind = h.Info.IsDirectory ? ResultKind.Folder : ResultKind.File,
+                        Origin = (m.File.Value.Flags & (byte)EntryFlags.Outside) != 0 ? ResultOrigin.FolderIndex : ResultOrigin.Index,
                         EntryId = h.Info.Id, Name = h.Info.ParentId == 0 ? h.FullPath : h.Info.Name, FullPath = h.FullPath,
                         Directory = Path.GetDirectoryName(h.FullPath), Size = h.Info.Size, ModifiedUtc = h.Info.ModifiedUtc,
                         Score = m.Score, Fuzzy = m.Errors > 0, Highlights = ComputeHighlights(h.Info.Name, q.Tokens),

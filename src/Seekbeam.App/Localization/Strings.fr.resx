@@ -366,4 +366,50 @@ Indexer quand même le contenu de Téléchargements ?</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>L&apos;alias « {0} » n&apos;a pas de cible.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>Le mot-clé « {0} » est utilisé par plusieurs alias.</value></data>
   <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>File : {0:N0} fichiers · {1:N0} reportés (lecteur indisponible ou fichier verrouillé)</value></data>
+  <data name="Launcher_HintDialog" xml:space="preserve"><value>Aller à un dossier : des bribes de son chemin (proj client), ou C:\…</value></data>
+  <data name="Launcher_HintExplorer" xml:space="preserve"><value>Aller à un dossier dans cette fenêtre : des bribes de son chemin, ou C:\…</value></data>
+  <data name="Launcher_KeysDialog" xml:space="preserve"><value>↵ y aller · Ctrl+G dernier dossier de l'Explorateur · Ctrl+↵ ouvrir dans l'Explorateur · Échap retour</value></data>
+  <data name="Launcher_KeysNavigate" xml:space="preserve"><value>↵ y aller · Ctrl+↵ ouvrir dans l'Explorateur · Échap retour</value></data>
+  <data name="Launcher_NavLocations" xml:space="preserve"><value>Dossiers ouverts dans l'Explorateur, favoris et récents · tapez pour chercher</value></data>
+  <data name="Launcher_NavNoLocation" xml:space="preserve"><value>Tapez des bribes du chemin d'un dossier, ou un chemin absolu (C:\…, \\serveur\…)</value></data>
+  <data name="NavTarget_FileOpen" xml:space="preserve"><value>Aller au dossier · boîte « Ouvrir »</value></data>
+  <data name="NavTarget_FileSave" xml:space="preserve"><value>Aller au dossier · boîte « Enregistrer » (le nom de fichier saisi est conservé)</value></data>
+  <data name="NavTarget_FolderPicker" xml:space="preserve"><value>Aller au dossier · sélecteur de dossier</value></data>
+  <data name="NavTarget_LegacyFolderBrowser" xml:space="preserve"><value>Ancienne boîte de choix de dossier : le chemin choisi sera copié dans le presse-papiers</value></data>
+  <data name="NavTarget_Explorer" xml:space="preserve"><value>Aller au dossier · cette fenêtre de l'Explorateur</value></data>
+  <data name="Nav_NoExplorer" xml:space="preserve"><value>Aucune fenêtre de l'Explorateur n'est ouverte.</value></data>
+  <data name="Nav_TargetGone" xml:space="preserve"><value>La fenêtre a été fermée entre-temps.</value></data>
+  <data name="Nav_FolderMissing" xml:space="preserve"><value>Ce dossier n'existe plus : {0}</value></data>
+  <data name="Nav_BlockedCopied" xml:space="preserve"><value>Cette fenêtre appartient à une application lancée en administrateur : Seekbeam ne peut pas la piloter. Chemin copié, collez-le avec Ctrl+V : {0}</value></data>
+  <data name="Nav_UnsupportedCopied" xml:space="preserve"><value>Cette boîte de dialogue ne peut pas être pilotée. Chemin copié, collez-le avec Ctrl+V : {0}</value></data>
+  <data name="Origin_FolderIndex" xml:space="preserve"><value>Dossier · hors index</value></data>
+  <data name="Origin_Disk" xml:space="preserve"><value>Dossier · sur le disque</value></data>
+  <data name="Origin_Explorer" xml:space="preserve"><value>Ouvert dans l'Explorateur</value></data>
+  <data name="Origin_Recent" xml:space="preserve"><value>Dossier récent</value></data>
+  <data name="Origin_Favorite" xml:space="preserve"><value>Dossier favori</value></data>
+  <data name="Tab_Navigation" xml:space="preserve"><value>Dialogues et dossiers</value></data>
+  <data name="Set_NavGroup" xml:space="preserve"><value>Boîtes « Ouvrir » / « Enregistrer » et Explorateur</value></data>
+  <data name="Set_NavDialogs" xml:space="preserve"><value>Double Ctrl dans une boîte « Ouvrir », « Enregistrer » ou de choix de dossier : aller à un dossier dans cette boîte</value></data>
+  <data name="Set_NavTyping" xml:space="preserve"><value>Taper dans la liste de fichiers d'une boîte de dialogue ouvre Seekbeam (Échap rend les lettres à la liste)</value></data>
+  <data name="Set_NavTypingTip" xml:space="preserve"><value>Remplace le « saut au nom commençant par ces lettres » de la liste. Les zones de saisie (nom de fichier, adresse, recherche) ne sont jamais concernées.</value></data>
+  <data name="Set_NavQuickSwitch" xml:space="preserve"><value>Quick Switch : Ctrl+G saute au dossier de la dernière fenêtre de l'Explorateur ; les dossiers ouverts dans l'Explorateur sont proposés</value></data>
+  <data name="Set_NavExplorer" xml:space="preserve"><value>Double Ctrl dans une fenêtre de l'Explorateur : aller à un dossier dans cette fenêtre</value></data>
+  <data name="Set_NavRecent" xml:space="preserve"><value>Proposer les dossiers favoris et récents quand rien n'est saisi</value></data>
+  <data name="Set_NavPathCompletion" xml:space="preserve"><value>Compléter un chemin absolu saisi, depuis le disque (C:\Win…, \\serveur\…, %APPDATA%\…)</value></data>
+  <data name="Set_NavNote" xml:space="preserve"><value>Seekbeam se contente de naviguer : il ne valide jamais une boîte de dialogue, il n'ouvre ni n'enregistre donc jamais de fichier lui-même. Les boîtes des applications lancées en administrateur et l'ancienne boîte de choix de dossier en arborescence ne peuvent pas être pilotées : le chemin est alors copié dans le presse-papiers.</value></data>
+  <data name="Set_FiGroup" xml:space="preserve"><value>Dossiers hors des emplacements indexés</value></data>
+  <data name="Set_FiEnabled" xml:space="preserve"><value>Indexer les noms des dossiers hors des emplacements indexés (dossiers seulement : ni fichiers, ni contenu)</value></data>
+  <data name="Set_FiDrives" xml:space="preserve"><value>Tous les disques locaux fixes</value></data>
+  <data name="Set_FiLearn" xml:space="preserve"><value>Dossiers utilisés hors de l'index (partages réseau, disques amovibles), avec quelques niveaux en dessous</value></data>
+  <data name="Set_FiDepth" xml:space="preserve"><value>Profondeur maximale</value></data>
+  <data name="Set_FiExcludes" xml:space="preserve"><value>Dossiers exclus (noms ou motifs, un par ligne)</value></data>
+  <data name="Set_FiExcludedPaths" xml:space="preserve"><value>Dossiers absolus exclus (un par ligne, %VARIABLES% acceptées)</value></data>
+  <data name="Set_FiLower" xml:space="preserve"><value>Dossiers classés plus bas (dossiers absolus ou noms de dossiers)</value></data>
+  <data name="Set_FiForget" xml:space="preserve"><value>Oublier les dossiers appris</value></data>
+  <data name="Set_FiForgotten" xml:space="preserve"><value>Dossiers appris oubliés.</value></data>
+  <data name="Set_FiStatus" xml:space="preserve"><value>{0:N0} dossiers hors des emplacements · dernier parcours complet : {1}</value></data>
+  <data name="Set_FiNever" xml:space="preserve"><value>pas encore</value></data>
+  <data name="Set_FiNote" xml:space="preserve"><value>Seules les listes de dossiers sont lues, à la priorité la plus basse, après les emplacements indexés ; les nouveaux dossiers sont suivis au fur et à mesure. Rien n'y est jamais écrit.</value></data>
+  <data name="Dash_FolderIndex" xml:space="preserve"><value>Index des dossiers (hors emplacements) : {0:N0} dossiers · dernier parcours {1}</value></data>
+  <data name="Nav_TimeoutCopied" xml:space="preserve"><value>La boîte n'est pas allée au dossier à temps (emplacement lent ?). Chemin copié, collez-le avec Ctrl+V : {0}</value></data>
 </root>

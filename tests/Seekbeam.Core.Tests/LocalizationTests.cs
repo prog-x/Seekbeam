@@ -63,6 +63,8 @@ public sealed class LocalizationTests
         // Launcher content dot: reasons why a file's content is not indexed (ResultItem.ReasonKey).
         foreach (var s in Enum.GetNames<Core.Indexing.ContentIneligibility>().Where(n => n != "None")) used.Add("ContentWhy_" + s);
         used.Add("ContentWhy_Encrypted");
+        // "Go to folder" mode: the kind of window driven (LauncherWindow, NavTargetKind of Seekbeam.App).
+        foreach (var k in new[] { "FileOpen", "FileSave", "FolderPicker", "LegacyFolderBrowser", "Explorer" }) used.Add("NavTarget_" + k);
         string rm = File.ReadAllText(Path.Combine(Repo, "src", "Seekbeam.Core", "Resources", "ResourceManager.cs"));
         foreach (Match m in Regex.Matches(rm, @"new\(""(\w+)""|Name = ""(\w+)""")) used.Add("Profile_" + (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value));
         foreach (Match m in Regex.Matches(rm, @"Reason = ""(\w+)""")) used.Add("Reason_" + m.Groups[1].Value);

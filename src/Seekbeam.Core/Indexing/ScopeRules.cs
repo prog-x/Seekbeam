@@ -54,6 +54,9 @@ public sealed class ExclusionMatcher
     }
 }
 
+/// <summary>Kind of a root (roots.kind): an indexed location, or a start point of the folder index (TD-21).</summary>
+public enum RootKind { Location = 0, FolderIndex = 1 }
+
 /// <summary>Effective configuration of one indexed root.</summary>
 public sealed class RootScope
 {
@@ -62,12 +65,51 @@ public sealed class RootScope
     public required RootConfig Config { get; init; }
     public required ExclusionMatcher Excludes { get; init; }
     public long RootEntryId { get; set; }
+    public RootKind Kind { get; init; } = RootKind.Location;
+    /// <summary>Folder index: only directories are recorded, files and content are never looked at.</summary>
+    public bool FoldersOnly => Kind == RootKind.FolderIndex;
+    /// <summary>Folder index: absolute folders never indexed (normalized, trailing separator).</summary>
+    public string[] ExcludedPrefixes { get; init; } = [];
+    /// <summary>Folder index: absolute folders ranked lower (normalized, trailing separator).</summary>
+    public string[] LoweredPrefixes { get; init; } = [];
+    /// <summary>Folder index: folder names ranked lower wherever they appear ("AppData").</summary>
+    public HashSet<string> LoweredNames { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// Folder index: exclusion path patterns are matched against the path below the volume ("Users\me\AppData\Local\Temp"),
+    /// so that one pattern works whatever the start point of the walk.
+    /// </summary>
+    public bool RelativeToVolume { get; init; }
 
     public string? Relative(string fullPath)
     {
-        string root = System.IO.Path.TrimEndingDirectorySeparator(Path);
+        string root = System.IO.Path.TrimEndingDirectorySeparator(RelativeToVolume ? System.IO.Path.GetPathRoot(Path) ?? Path : Path);
         if (fullPath.Length < root.Length || !fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return null;
-        return fullPath.Length == root.Length ? "" : fullPath[(root.Length + (Path.EndsWith('\\') ? 0 : 1))..];
+        if (fullPath.Length == root.Length) return "";
+        return fullPath[(root.Length + (fullPath[root.Length] == '\\' ? 1 : 0))..];
+    }
+
+    /// <summary>Folder index: true if <paramref name="fullPath"/> is (inside) an excluded absolute folder.</summary>
+    public bool UnderExcludedPrefix(string fullPath) => StartsWithAny(fullPath, ExcludedPrefixes);
+
+    /// <summary>Folder index: true if the folder must be ranked lower (Program Files, ProgramData, AppData…).</summary>
+    public bool IsLowered(string fullPath)
+    {
+        if (StartsWithAny(fullPath, LoweredPrefixes)) return true;
+        if (LoweredNames.Count == 0) return false;
+        foreach (var part in fullPath.Split('\\', StringSplitOptions.RemoveEmptyEntries))
+            if (LoweredNames.Contains(part)) return true;
+        return false;
+    }
+
+    private static bool StartsWithAny(string fullPath, string[] prefixes)
+    {
+        foreach (var p in prefixes)
+        {
+            // p ends with '\': "C:\Windows\" matches "C:\Windows" and "C:\Windows\System32".
+            if (fullPath.Length + 1 == p.Length ? p.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase)
+                : fullPath.StartsWith(p, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 }
 
@@ -79,14 +121,24 @@ public sealed class ScopeRules
 {
     private readonly ExclusionMatcher _global;
     private readonly string _dataRoot;
+    private readonly HashSet<string> _rootPaths;
+    /// <summary>Every root, most specific first: indexed locations and start points of the folder index.</summary>
     public IReadOnlyList<RootScope> Roots { get; }
+    /// <summary>The indexed locations only (what the user configured).</summary>
+    public IReadOnlyList<RootScope> Locations { get; }
 
     public ScopeRules(IEnumerable<RootScope> roots, IEnumerable<string> globalExcludes, string dataRoot)
     {
         Roots = roots.OrderByDescending(r => r.Path.Length).ToList();
+        Locations = Roots.Where(r => r.Kind == RootKind.Location).ToList();
+        _rootPaths = new HashSet<string>(Roots.Select(r => System.IO.Path.TrimEndingDirectorySeparator(r.Path)), StringComparer.OrdinalIgnoreCase);
         _global = new ExclusionMatcher(globalExcludes);
         _dataRoot = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(dataRoot));
     }
+
+    /// <summary>True if <paramref name="fullPath"/> is the path of a root other than <paramref name="root"/>.</summary>
+    public bool IsOtherRoot(RootScope root, string fullPath) =>
+        _rootPaths.Contains(fullPath) && !fullPath.Equals(System.IO.Path.TrimEndingDirectorySeparator(root.Path), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Perimeter computed directly from a configuration (enabled roots), for checks made before the indexer runs.</summary>
     public static ScopeRules FromConfig(SeekbeamConfig cfg, string dataRoot)
@@ -114,10 +166,15 @@ public sealed class ScopeRules
         return false;
     }
 
+    /// <summary>The most specific indexed location (not a folder-index root) containing <paramref name="fullPath"/>, or null.</summary>
+    public RootScope? FindLocation(string fullPath) => Find(Locations, fullPath);
+
     /// <summary>The most specific root containing <paramref name="fullPath"/>, or null.</summary>
-    public RootScope? FindRoot(string fullPath)
+    public RootScope? FindRoot(string fullPath) => Find(Roots, fullPath);
+
+    private static RootScope? Find(IReadOnlyList<RootScope> roots, string fullPath)
     {
-        foreach (var r in Roots)
+        foreach (var r in roots)
         {
             string rp = System.IO.Path.TrimEndingDirectorySeparator(r.Path);
             if (fullPath.Equals(rp, StringComparison.OrdinalIgnoreCase)) return r;
@@ -129,6 +186,8 @@ public sealed class ScopeRules
 
     public RootScope? ById(long rootId) => Roots.FirstOrDefault(r => r.RootId == rootId);
 
+    private static string EntryStoreCombine(string dir, string name) => dir.EndsWith('\\') ? dir + name : dir + "\\" + name;
+
     public bool IsDataDirectory(string fullPath) =>
         fullPath.Equals(_dataRoot, StringComparison.OrdinalIgnoreCase)
         || (fullPath.Length > _dataRoot.Length && fullPath.StartsWith(_dataRoot, StringComparison.OrdinalIgnoreCase) && fullPath[_dataRoot.Length] == '\\');
@@ -137,6 +196,8 @@ public sealed class ScopeRules
     public bool IsExcluded(RootScope root, string name, string fullPath, FileAttributes attrs)
     {
         if (IsDataDirectory(fullPath)) return true;
+        // Folder index: a folder that is itself a root is indexed by that root (an indexed location covers it fully).
+        if (root.FoldersOnly && (IsOtherRoot(root, fullPath) || root.UnderExcludedPrefix(fullPath))) return true;
         if (!root.Config.IncludeHidden && (attrs & FileAttributes.Hidden) != 0) return true;
         string? rel = null;
         if (_global.IsExcluded(name, null)) return true;
@@ -150,13 +211,15 @@ public sealed class ScopeRules
     {
         root = FindRoot(fullPath);
         if (root == null || IsDataDirectory(fullPath)) return false;
-        string? rel = root.Relative(fullPath);
-        if (string.IsNullOrEmpty(rel)) return true;
-        string cur = System.IO.Path.TrimEndingDirectorySeparator(root.Path);
+        if (root.FoldersOnly && root.UnderExcludedPrefix(fullPath)) return false;
+        string rootPath = System.IO.Path.TrimEndingDirectorySeparator(root.Path);
+        if (fullPath.Length <= rootPath.Length) return true;
+        string rel = fullPath[(rootPath.Length + (fullPath[rootPath.Length] == '\\' ? 1 : 0))..];
+        string cur = rootPath;
         int depth = 0;
         foreach (var part in rel.Split('\\', StringSplitOptions.RemoveEmptyEntries))
         {
-            cur = cur + "\\" + part;
+            cur = EntryStoreCombine(cur, part);
             depth++;
             if (_global.IsExcluded(part, null) || root.Excludes.IsExcluded(part, root.Relative(cur))) return false;
         }

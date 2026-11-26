@@ -20,6 +20,7 @@ Recherche locale ultra-rapide, lanceur d'applications et indexation documentaire
 - **Noms et chemins** : mots dans n'importe quel ordre, morceaux de mots, insensible à la casse et aux accents, tolérant aux fautes de frappe. `Ant 202611 cahier` trouve `20261121_cahier_des_charges_…_Anthropic_Lucens.docx`.
 - **Applications** : menu Démarrer, bureau, applications du Store (UWP/MSIX), exécutables de dossiers choisis.
 - **Commandes et alias** : commandes de Win+R (`mstsc`, `regedit`, `services.msc`, avec arguments : `mstsc /v:serveur`) et vos propres mots-clés (`hosts` ouvre le fichier hosts dans le Bloc-notes en administrateur).
+- **Aller au dossier dans n'importe quelle boîte Ouvrir / Enregistrer** : double Ctrl au-dessus de la boîte (ou tapez simplement dans sa liste de fichiers), tapez des bribes du chemin (`cli dup fact`) ou un chemin absolu, Entrée : la boîte affiche ce dossier, comme avec Listary. Fonctionne aussi dans l'Explorateur, avec Quick Switch (`Ctrl+G` : dossier de la dernière fenêtre de l'Explorateur). Seekbeam se contente de naviguer, il ne valide jamais la boîte. Les noms des dossiers de chaque disque fixe sont indexés pour cela (jamais les fichiers ni le contenu). Voir le [guide utilisateur](docs/USER_GUIDE.fr.md#boîtes-de-dialogue-et-dossiers-aller-au-dossier).
 - **Plein texte** :
   - formats : PDF, Word (DOC/DOCX), Excel (XLS/XLSX), PowerPoint (PPT/PPTX), OpenDocument, RTF, HTML/XML, JSON/YAML/CSV, code source, logs, archives ZIP ;
   - requêtes : phrases exactes, `OR`, exclusions ;
@@ -55,6 +56,7 @@ Détails : [docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md). Guide utilisateur
 | Ctrl+D | recherche avancée (plein texte) |
 | Ctrl+, | paramètres |
 | Échap | fermer |
+| Ctrl, Ctrl au-dessus d'une boîte Ouvrir / Enregistrer | aller au dossier dans cette boîte (Entrée : y aller ; Ctrl+G : dernier dossier de l'Explorateur ; Échap : retour) |
 
 **Syntaxe** :
 - `mot1 mot2` : tous les mots, en sous-chaîne ;

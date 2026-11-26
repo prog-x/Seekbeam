@@ -41,6 +41,18 @@ public sealed class UsageStore
     }
 
     public UsageBoosts Boosts => _boosts;
+
+    /// <summary>Keys (paths, "app:…") by decreasing last use.</summary>
+    public List<string> RecentKeys(int max)
+    {
+        lock (_lock) return _usage.OrderByDescending(u => u.Value.Last).Take(max).Select(u => u.Key).ToList();
+    }
+
+    /// <summary>Favourite keys (paths, "app:…").</summary>
+    public List<string> Favorites()
+    {
+        lock (_lock) return [.. _favorites.Order(StringComparer.OrdinalIgnoreCase)];
+    }
     public bool IsFavoriteId(int id) { lock (_lock) return _favoriteIds.Contains(id); }
     public bool IsFavorite(string key) { lock (_lock) return _favorites.Contains(key); }
 

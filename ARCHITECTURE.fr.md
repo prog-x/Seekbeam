@@ -89,6 +89,8 @@ name_queue(id PK, path UNIQUE, root_id, priority, mode, depth, attempts, not_bef
 content_queue(entry_id PK, priority, attempts, not_before, reason)
 depth_limited(dir_id PK, root_id, hidden)  -- dossiers à la profondeur maximale de leur racine dont le contenu n'est pas exploré (schéma v2)
 roots, apps, usage(path PK, launches, last_used, score), favorites, query_history, errors, meta
+-- v3 : roots.kind (0 = emplacement indexé, 1 = index des dossiers), entries.xflags (EntryFlags.Outside / Lowered),
+--      learned_folders(path PK, last_used) : dossiers utilisés hors de l'index (TD-21)
 ```
 
 Le chemin n'est pas stocké par fichier : il est reconstruit via `parent_id` (cache LRU des chemins de répertoires). Gain : ~60 % de taille.
@@ -115,7 +117,7 @@ Le chemin n'est pas stocké par fichier : il est reconstruit via `parent_id` (ca
 `Normalizer` : minuscules invariantes, décomposition NFD puis suppression des diacritiques, ligatures (ß→ss, æ→ae, œ→oe, ø→o, ł→l…), encodage UTF-8. La même fonction sert à l'index et aux requêtes, ce qui rend la recherche insensible à la casse et aux accents par construction. UTF-8 est auto-synchronisant, donc une recherche d'octets ne produit pas de faux positifs à cheval sur deux caractères.
 
 ### 5.2 Requête launcher
-Tokens séparés par des espaces, dans n'importe quel ordre, en sous-chaîne. Préfixes : `ext:pdf,docx`, `kind:file|folder|app`, `-exclu`, `"phrase exacte"`, `in:chemin`.
+Tokens séparés par des espaces, dans n'importe quel ordre, en sous-chaîne. Préfixes : `ext:pdf,docx`, `kind:file|folder|app`, `-exclu`, `"phrase exacte"`, `in:chemin`. `a\b` (ou `a/b`) est une chaîne de chemin : chaque bribe doit apparaître dans un segment strictement sous le précédent (vérifié pendant le parcours de l'index, avec une mémoïsation par dossier). Un chemin absolu (`C:\Win`, `\\serveur\`, `%VAR%\`) est plutôt complété depuis le disque (`PathCompleter`, TD-21). Une requête a une finalité : **Launch** (applications, fichiers et dossiers des emplacements ; les dossiers de l'index des dossiers seulement après eux, ou avec `kind:folder`) ou **Navigate** (« aller au dossier » : dossiers d'abord, index des dossiers inclus, ni applications ni résultats de contenu).
 
 ### 5.3 Algorithme (par segment, en parallèle par blocs de 64 k enregistrements)
 1. Pour chaque token, balayage vectorisé (`Span<byte>.IndexOf`) du texte du bloc → masque de bits par enregistrement.
@@ -149,6 +151,13 @@ Score additif documenté et testé (`RankingTests`, jeux requête → résultat 
 | favori | +400 |
 | fuzzy | −250 / erreur |
 | profondeur du chemin | −5 / niveau |
+| bribes de chemin dans l'ordre tapé le long du chemin (calculé sur la liste courte) | +150 |
+| par bribe trouvée au début d'un nom de dossier du chemin | +40 |
+| la dernière bribe désigne l'élément / commence son nom | +100 / +150 |
+| les bribes mènent à un dossier au-dessus de l'élément (élément plus profond que la cible) | −150 |
+| dossier de l'index des dossiers / classé plus bas (Program Files, ProgramData, AppData) | −30 / −100 |
+| dossier, mode « aller au dossier », correspondance exacte seulement | +5 000 (dossiers avant fichiers) |
+| dossier de l'index des dossiers dans le launcher (complément) | −1 000 000 (après tous les résultats des emplacements) |
 
 L'usage est plafonné en dessous de l'écart entre une correspondance exacte et une correspondance partielle : l'historique ne peut pas écraser une correspondance textuelle nettement meilleure.
 
@@ -172,6 +181,9 @@ Pour un répertoire : énumération en streaming (`NtQueryDirectoryFile`, `FileI
 ### 7.5 Découverte opportuniste
 Sources non intrusives : (a) le dossier « Éléments récents » de l'utilisateur (`%APPDATA%\Microsoft\Windows\Recent`, `.lnk` créés par le shell à chaque ouverture via l'Explorateur ou la boîte de dialogue standard), surveillé et analysé par notre parseur `.lnk` en lecture seule ; (b) les fichiers ouverts via Seekbeam. Algorithme : chemin → déjà indexé ? → dans une racine ? → exclu ? → répertoire parent connu ? Sinon, le répertoire est mis en file (priorité 1), ses sous-répertoires sont découverts selon les règles et les fichiers éligibles sont mis en file de contenu. Budget de découverte borné : 1 000 répertoires par événement et par heure.
 Non retenu : hooks d'API, ETW noyau ou pilote minifiltre, jugés intrusifs ou demandant des droits administrateur (voir TD-11).
+
+### 7.6 Index des dossiers (TD-21)
+Une seconde sorte de racine (`roots.kind = 1`) enregistre **uniquement des noms de dossiers** hors des emplacements indexés, dans le même catalogue et le même Name Index. `FolderIndexPlanner` (pur) décide où : chaque disque fixe prêt (sauf si un emplacement le couvre entièrement), les dossiers qu'un emplacement exclut par leur nom à son sommet (AppData) et les dossiers appris à l'usage (`learned_folders`, partages réseau, disques amovibles) avec 2 niveaux en dessous. Pour ces racines, `DirectoryScanner` ignore les fichiers et toutes les autres racines (`ScopeRules.IsOtherRoot`), applique les exclusions absolues (`%SystemRoot%`) et renseigne `entries.xflags` (`Outside`, plus `Lowered` pour Program Files, ProgramData, AppData), reporté dans les drapeaux des enregistrements (bits 32/64). Parcours initial à la priorité de réconciliation (après les emplacements), disques surveillés pour les **seuls noms de dossiers** (`FILE_NOTIFY_CHANGE_DIR_NAME`), nouveau parcours complet tous les 7 jours. Ajouter un emplacement supprime sa copie dans l'index des dossiers ; le retirer rend ses dossiers à l'index des dossiers. Les recherches choisissent avec `OutsideMode` (Exclude / Fallback / Include).
 
 ## 8. Extraction (processus isolé)
 
@@ -210,11 +222,12 @@ Signaux du mode Auto : CPU système (`GetSystemTimes`), mémoire (`GlobalMemoryS
 
 ## 10. Intégration Windows (Seekbeam.App)
 
-- **Raccourci** : hook clavier bas niveau `WH_KEYBOARD_LL` sur un thread dédié avec sa propre boucle de messages (aucune latence UI possible). Machine à états double Ctrl : deux appuis-relâchés de Ctrl seul, ≤ 400 ms, sans autre touche intercalée, Ctrl gauche, droit ou les deux. Les combinaisons personnalisées passent par `RegisterHotKey`. Le hook ne consomme jamais l'événement (`CallNextHookEx` systématique).
+- **Raccourci** : hook clavier bas niveau `WH_KEYBOARD_LL` sur un thread dédié avec sa propre boucle de messages (aucune latence UI possible). Machine à états double Ctrl : deux appuis-relâchés de Ctrl seul, ≤ 400 ms, sans autre touche intercalée, Ctrl gauche, droit ou les deux. Les combinaisons personnalisées passent par `RegisterHotKey`. Le hook ne consomme jamais un événement, à une exception près : dans une boîte Ouvrir/Enregistrer/choix de dossier, un caractère tapé dans la liste de fichiers (saisie directe) et `Ctrl+G` (TD-20).
 - **Fenêtre** : WPF sans bordure, coins arrondis DWM, pré-créée et masquée au démarrage (affichage < 50 ms), positionnée au centre de l'écran actif ou près du curseur.
 - **Actions** : `ShellExecuteEx` (open, runas, openas, properties), `SHOpenFolderAndSelectItems`, presse-papiers. Aucune action ne modifie un fichier.
 - **Applications** : menu Démarrer et bureau (`.lnk` analysés par notre parseur), `shell:AppsFolder` (IShellItem, AUMID UWP/MSIX), `.exe` des dossiers configurés.
 - **Commandes Exécuter et alias** (TD-19) : fichiers des dossiers du PATH (.com/.exe/.bat/.cmd/.msc/.cpl, sans récursion, PATH lu dans le registre) et enregistrements App Paths, réexaminés toutes les 15 minutes (≈ 900 entrées, 10 à 30 ms) ; alias de l'utilisateur issus de la configuration. Les commandes ne correspondent que par leur nom exact ou un préfixe d'au moins 3 lettres. « commande arguments » propose la commande avec ces arguments.
+- **Aller au dossier** (TD-20) : `NavigationTargets` reconnaît les boîtes Ouvrir / Enregistrer sous / choix de dossier (`#32770` + `SHELLDLL_DefView`, zone du nom par identifiant de contrôle) et les fenêtres de l'Explorateur par leur seule classe de fenêtre, et pilote une boîte en plaçant le chemin du dossier (terminé par `\`, existence vérifiée) dans sa zone « Nom du fichier », en lui donnant le focus (`WM_NEXTDLGCTL`) et en postant Entrée : la boîte navigue, sans jamais valider. `ExplorerShell` utilise `IShellWindows` (dossiers ouverts, onglet actif, `Navigate2`). `DialogKeyRouter`, sur le thread du hook clavier, prend la saisie directe dans la liste de fichiers d'une boîte et `Ctrl+G` (Quick Switch). Le launcher, en mode « aller au dossier », se colle sous la cible, cherche avec la finalité Navigate, liste les dossiers de l'Explorateur, favoris et récents quand rien n'est tapé, et rend les lettres tapées sur `Échap`. Pour les cibles élevées (UIPI) et l'ancienne arborescence `SHBrowseForFolder`, le chemin est copié dans le presse-papiers. Vérifié sur de vraies boîtes par `tools/Seekbeam.DialogCheck`.
 - **Tray** : `NotifyIcon` (menu : rechercher, recherche avancée, tableau de bord, pause, paramètres, quitter).
 - **Démarrage auto** : `HKCU\…\Run`. Instance unique : mutex nommé + événement « show ».
 

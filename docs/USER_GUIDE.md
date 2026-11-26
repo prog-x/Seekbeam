@@ -24,7 +24,11 @@ By default it indexes your user folder (`C:\Users\<you>`), except `AppData`, `.g
 - `-excludedword`: leaves out names containing this word;
 - `ext:pdf,docx`: filters by extension;
 - `kind:file`, `kind:folder`, `kind:app`: filters by type;
-- `in:folder`: limits the search to a folder.
+- `in:folder`: limits the search to a folder;
+- `src\seek` (or `src/seek`): path fragments in hierarchy order: `seek` must be in a folder (or name) **below** a folder matching `src`;
+- `C:\Win`, `\\server\`, `%APPDATA%\Mic`: an **absolute path** is completed live from the disk, like the Explorer address bar (folders first). Typing `\\server\` lists the server's shares.
+
+**Path fragments.** Words typed in the order of the path rank higher: `sou per see` puts `C:\source\perso\Seekbeam` first, and the last word names the target (`seek src` gives the `src` folder, not what is inside it).
 
 **Ranking** favors, in order:
 - exact matches;
@@ -70,6 +74,21 @@ Folders and applications have no dot. While names are still being indexed, a ban
 Seekbeam ships with one alias: **`hosts`** opens `%SystemRoot%\System32\drivers\etc\hosts` in Notepad **as administrator**, because saving that file requires it; Windows asks for confirmation (UAC). You can edit or delete it like any other alias.
 
 > As with "Open", Seekbeam only asks Windows to start the program. What that program then does (Notepad saving the hosts file, for instance) is your action in that program, not Seekbeam's.
+
+## Dialogs and folders (go to folder)
+In an **Open**, **Save As** or **folder** dialog of any application, Seekbeam takes you to a folder in a few keystrokes, like Listary.
+
+- **Ctrl twice** over the dialog: the launcher opens **glued under the dialog**, in "go to folder" mode. Type bits of the path (`cli dup fact`), or an absolute path (`D:\Pro`), then `Enter`: the dialog shows that folder.
+- **Just type**: when the dialog's **file list** has the focus, typing a letter or a digit opens Seekbeam with it. `Esc` closes Seekbeam and gives the letters back to the list (its own "jump to the name starting with…"). Text boxes (file name, address, search) are never affected.
+- **Nothing typed**: the folders open in Explorer (Quick Switch), then your favorite and recent folders.
+- **Ctrl+G** in a dialog: it jumps straight to the folder of the front-most Explorer window.
+- **Explorer**: Ctrl twice over an Explorer window drives that window (its active tab); typing in Explorer keeps its usual behaviour.
+- Folders come first, then files. Choosing a **file** goes to its folder; in an Open dialog its name is put in the "File name" box, ready for you to confirm.
+- In a **Save As** dialog the file name you typed is kept.
+
+**Seekbeam never validates a dialog**: it only shows the folder. You confirm (Open, Save, Select folder) yourself, so Seekbeam can neither open nor overwrite a file. Two cases cannot be driven and get the path copied to the clipboard instead (paste it with `Ctrl+V`): the dialogs of applications running as administrator (Windows protects them from normal applications), and the old "Browse for folder" tree.
+
+**Folders outside your locations.** For this to work wherever you save, Seekbeam also indexes the **names of the folders** of every fixed local drive (never their files, never their contents), plus the folders you use outside the index (network shares, USB drives) with a few levels below. `C:\Windows`, recycle bins, caches, `node_modules`, `.git`, `bin`/`obj` are left out; Program Files, ProgramData and AppData are included but ranked lower. In the normal launcher these folders only fill the free rows, after your locations (or with `kind:folder`). Each option can be switched off in **Settings → Dialogs & folders**.
 
 ## Advanced search (full text)
 Press `Ctrl+D` in the launcher, or use the **Advanced search** entry in the Start menu or the tray icon menu.
@@ -122,6 +141,7 @@ Tray icon menu → **Settings**, or `Ctrl+,` in the launcher. See [CONFIGURATION
   - **Maximum depth** (default 10): how many folder levels below the location are explored. When folders still contain items beyond this limit, Seekbeam tells you: a one-time notification after indexing, a warning in the dashboard listing the affected folders, and a hint in the launcher when a search finds nothing. Raise the limit (or set `-1` for unlimited), or add the deep folder as a separate location.
 - **Content**: extraction limits, archives, and **folders indexed by name only**. Files in these folders are found by name, but their content is never read. The Downloads folder is in this list by default: files from the Internet and e-mail land there, and indexing their content would mean parsing them automatically, even ones you never opened. If you remove it, Seekbeam first explains the risk and asks for confirmation.
 - **Applications**: application sources (Start menu, desktop, Store apps, extra executable folders), Run commands, and the alias editor (see [Commands and aliases](#commands-and-aliases)).
+- **Dialogs & folders**: one switch per feature (dialogs, direct typing, Quick Switch, Explorer, recent folders, path completion) and the folder index outside the locations (drives, learned folders, depth, exclusions, folders ranked lower, "forget the learned folders"). See [Dialogs and folders](#dialogs-and-folders-go-to-folder).
 - **Resources**, **Search & privacy**, **Watching**.
 
 ## Resources

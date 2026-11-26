@@ -28,7 +28,7 @@ Version 1.0.0 complete: functional, tested, measured, documented and installable
 | 17 Finalization | ✅ | README, guides, release notes, final report |
 
 ## Tests
-197 automated tests green: Core 87, Extraction 101, Immutability 9 (`dotnet test Seekbeam.sln`).
+307 automated tests green: Core 196, Extraction 101, Immutability 10 (`dotnet test Seekbeam.sln`), plus 36/36 checks on real Windows dialogs (`tools/Seekbeam.DialogCheck`, [docs/DIALOG_NAVIGATION_CHECK.md](docs/DIALOG_NAVIGATION_CHECK.md)).
 
 ## Bugs fixed during validation (with a test or a measurement)
 - Packing of Win32 structures (wrong metadata size and dates), found by the extractors agent.
@@ -47,9 +47,11 @@ Version 1.0.0 complete: functional, tested, measured, documented and installable
 - The stored depth of a moved folder's subtree is only updated at the next rescan.
 - No OCR; ZIP archives only; no MFT/USN (elevation required).
 - ETW audit (administrator) provided but not run.
+- "Go to folder": dialogs of elevated applications (UIPI) and the old `SHBrowseForFolder` tree are not driven (the path is copied); dialogs not built on the Windows common dialogs are not recognised; direct typing through the real hook is not covered by automated tests (injected keys are ignored by design).
+- Folder index: changing the "ranked lower" rules updates existing folders at the next walk; learned folders come from Seekbeam, recent items and typed paths only (no hook into other applications).
 - Automatic re-extraction after an extractor version change is not implemented (use "Reindex content").
 
 ## Next possible improvements
 USN/MFT mode for elevated installations, optional Windows.Media.Ocr OCR, 7z/rar, jump lists for discovery, binary signing, rich preview (images, PDF).
 
-Since 1.0 (unreleased): UI in English, French, German and Italian ([docs/TRANSLATING.md](docs/TRANSLATING.md)), MIT license, default depth 10 with reporting of unexplored folders, shutdown fix. Planned work, including the rest of the GitHub publication checklist, is tracked in [ROADMAP.md](ROADMAP.md).
+Since 1.0 (unreleased): "go to folder" in Open/Save/folder dialogs and Explorer with direct typing and Quick Switch (TD-20), folder index outside the locations and path fragments / typed paths (TD-21), UI in English, French, German and Italian ([docs/TRANSLATING.md](docs/TRANSLATING.md)), MIT license, default depth 10 with reporting of unexplored folders, shutdown fix. Planned work, including the rest of the GitHub publication checklist, is tracked in [ROADMAP.md](ROADMAP.md).

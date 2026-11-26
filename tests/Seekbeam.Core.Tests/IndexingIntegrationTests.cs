@@ -48,7 +48,7 @@ public sealed class IndexingIntegrationTests : IDisposable
             c.General.FirstRunCompleted = true;
             configure?.Invoke(c);
         });
-        _engine = new SeekbeamEngine(storage, new EngineOptions { Unthrottled = true, EnableApps = false, EnableRecentItems = false });
+        _engine = new SeekbeamEngine(storage, new EngineOptions { Unthrottled = true, EnableApps = false, EnableRecentItems = false, FolderIndexDrives = () => [] });
         _engine.Watcher.CoalesceWindow = TimeSpan.FromMilliseconds(200);
         _engine.Start();
         WaitIdle();
@@ -100,7 +100,7 @@ public sealed class IndexingIntegrationTests : IDisposable
     {
         var storage = new SeekbeamStorage(_data);
         new ConfigStore(storage).Update(c => { c.Roots = [new RootConfig { Path = _src }]; c.General.FirstRunCompleted = true; });
-        _engine = new SeekbeamEngine(storage, new EngineOptions { Unthrottled = true, EnableApps = false, EnableRecentItems = false });
+        _engine = new SeekbeamEngine(storage, new EngineOptions { Unthrottled = true, EnableApps = false, EnableRecentItems = false, FolderIndexDrives = () => [] });
         _engine.Indexer.Post(new ReconcileCommand(null, QueuePriority.Reconcile)); // indexer thread not started yet
         Assert.True(_engine.Indexer.Stats().Busy, "a pending command must count as work");
         _engine.Start();

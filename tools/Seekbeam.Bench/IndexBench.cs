@@ -35,7 +35,7 @@ internal static partial class IndexBench
             host = Path.Combine(d, "src", "Seekbeam.ExtractorHost", "bin", "Release", "net10.0-windows", "Seekbeam.ExtractorHost.exe");
         using var e = new SeekbeamEngine(storage, new EngineOptions
         {
-            EnableApps = false, EnableRecentItems = false, EnableWatchers = false,
+            EnableApps = false, EnableRecentItems = false, EnableWatchers = false, FolderIndexDrives = () => [],
             SupportedExtensions = () => ["txt", "md", "csv", "json", "log", "cs", "js", "html", "xml", "sql", "py", "yaml", "ini"],
             ExtractionFactory = content && File.Exists(host) ? () => new Seekbeam.Core.Content.ExtractorClient(host) : null,
         });

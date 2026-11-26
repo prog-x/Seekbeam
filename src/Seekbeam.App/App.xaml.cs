@@ -100,12 +100,17 @@ public partial class App : Application
         CreateLauncher();
 
         _hotkeys = new HotkeyService();
-        _hotkeys.LauncherRequested += () => Dispatcher.BeginInvoke(() => _launcher!.Toggle());
+        _hotkeys.LauncherRequested += () => Dispatcher.BeginInvoke(OnLauncherHotkey);
         _hotkeys.DeepSearchRequested += () => Dispatcher.BeginInvoke(() => ShowDeep(null));
         _hotkeys.RegistrationFailed += msg => _tray?.ShowBalloon("Seekbeam", msg);
+        _hotkeys.Router.TypingStarted += (t, ch) => Dispatcher.BeginInvoke(() => _launcher!.ShowForTarget(t, ch, typed: true));
+        _hotkeys.Router.QuickSwitchRequested += t => Dispatcher.BeginInvoke(() => _ = _launcher!.QuickSwitch(t));
+        ConnectLauncher();
+        ApplyNavigation(cfg.Navigation);
         _hotkeys.Configure(cfg.Hotkey);
         _engine.Config.Changed += c => Dispatcher.BeginInvoke(() =>
         {
+            ApplyNavigation(c.Navigation);
             _hotkeys.Configure(c.Hotkey);
             Theme.Apply(c.Launcher.Theme);
             if (c.General.Language != _language) ApplyLanguage(c.General.Language);
@@ -121,7 +126,7 @@ public partial class App : Application
             while (_showEvent.WaitOne())
             {
                 if (IsShuttingDown) return;
-                Dispatcher.BeginInvoke(() => _launcher.ShowLauncher());
+                Dispatcher.BeginInvoke(() => _launcher!.ShowLauncher());
             }
         }) { IsBackground = true, Name = "Seekbeam.ShowEvent" };
         t.Start();
@@ -131,7 +136,7 @@ public partial class App : Application
         if (args.Contains("--settings")) ShowSettings();
         else if (args.Contains("--dashboard")) ShowDashboard();
         else if (args.Contains("--deep")) ShowDeep(e.Args.SkipWhile(a => !a.Equals("--deep", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault());
-        else if (!args.Contains("--background")) _launcher.ShowLauncher();
+        else if (!args.Contains("--background")) _launcher!.ShowLauncher();
         if (!cfg.General.FirstRunCompleted || args.Contains("--background") == false && _engine.NameIndex.LiveCount <= 1)
             _tray?.ShowBalloon("Seekbeam", L.T("Tray_Welcome"));
     }
@@ -150,8 +155,45 @@ public partial class App : Application
         _launcher = new LauncherWindow(_engine!, _icons!);
         _launcher.DeepSearchRequested += q => ShowDeep(q);
         _launcher.SettingsRequested += ShowSettings;
+        _launcher.NoticeRequested += msg => _tray?.ShowBalloon("Seekbeam", msg);
         // Pre-create the window (hidden) so the first activation is instantaneous.
         new System.Windows.Interop.WindowInteropHelper(_launcher).EnsureHandle();
+        ConnectLauncher();
+    }
+
+    /// <summary>The keyboard router must know the launcher window (keys typed in it are never taken).</summary>
+    private void ConnectLauncher()
+    {
+        if (_hotkeys == null || _launcher == null) return;
+        _launcher.Router = _hotkeys.Router;
+        _hotkeys.Router.LauncherHwnd = new System.Windows.Interop.WindowInteropHelper(_launcher).Handle;
+    }
+
+    /// <summary>Direct typing and Ctrl+G need the keyboard hook even when double Ctrl is off (TD-20).</summary>
+    private void ApplyNavigation(Core.Config.NavigationConfig nav)
+    {
+        _hotkeys!.Router.DirectTyping = nav.DialogIntegration && nav.DirectTyping;
+        _hotkeys.Router.QuickSwitch = nav.DialogIntegration && nav.QuickSwitch;
+    }
+
+    /// <summary>
+    /// Double Ctrl (or the alternative hotkey): over an Open/Save/folder dialog or an Explorer window, the launcher opens in
+    /// "go to folder" mode for it (each can be switched off); anywhere else, the normal launcher.
+    /// </summary>
+    private void OnLauncherHotkey()
+    {
+        if (_launcher == null) return;
+        if (_launcher.IsShown && _launcher.IsActive) { _launcher.HideLauncher(); return; }
+        var nav = _engine!.Config.Current.Navigation;
+        NavTarget? target = null;
+        if (nav.DialogIntegration || nav.Explorer)
+        {
+            try { target = NavigationTargets.Detect(Native.Win32.GetForegroundWindow(), nav.Explorer); }
+            catch (Exception ex) { Log.Debug("App", "Target detection: " + ex.Message); }
+            if (target is { IsDialog: true } && !nav.DialogIntegration) target = null;
+        }
+        if (target != null) _launcher.ShowForTarget(target, null, typed: false);
+        else _launcher.ShowLauncher();
     }
 
     /// <summary>

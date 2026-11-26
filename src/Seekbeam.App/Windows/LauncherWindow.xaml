@@ -34,7 +34,7 @@
                 </Border>
                 <Grid Grid.Row="1">
                 <TextBlock x:Name="Status" FontSize="11" Foreground="{DynamicResource SubFgBrush}" />
-                <TextBlock HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource SubFgBrush}"
+                <TextBlock x:Name="KeysHint" HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource SubFgBrush}"
                            Text="{l:Tr Launcher_Keys}" />
                 </Grid>
             </Grid>

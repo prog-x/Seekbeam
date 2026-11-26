@@ -17,7 +17,7 @@ public sealed class CatalogWriter
     private readonly CatalogDb _db;
     private long _queueSeq;
     private readonly SqliteCommand _insert, _updateMeta, _rename, _deleteOne, _tomb, _children, _enqueueDir, _enqueueContent, _subtree, _setScanned,
-        _setDepthLimited, _clearDepthLimited;
+        _setDepthLimited, _clearDepthLimited, _setXFlags;
 
     public CatalogDb Db => _db;
 
@@ -27,15 +27,15 @@ public sealed class CatalogWriter
         var w = db.Writer;
         _queueSeq = Math.Max(CatalogDb.Scalar<long>(w, "SELECT IFNULL(MAX(seq),0) FROM name_queue"),
                              CatalogDb.Scalar<long>(w, "SELECT IFNULL(MAX(seq),0) FROM content_queue"));
-        _insert = Cmd("INSERT INTO entries(parent_id,root_id,name,kind,size,mtime,ctime,attrs,file_id,depth,name_rev,scanned) " +
-                      "VALUES($p,$r,$n,$k,$s,$m,$c,$a,$f,$d,$rev,$sc) RETURNING id",
-                      "$p", "$r", "$n", "$k", "$s", "$m", "$c", "$a", "$f", "$d", "$rev", "$sc");
+        _insert = Cmd("INSERT INTO entries(parent_id,root_id,name,kind,size,mtime,ctime,attrs,file_id,depth,name_rev,scanned,xflags) " +
+                      "VALUES($p,$r,$n,$k,$s,$m,$c,$a,$f,$d,$rev,$sc,$x) RETURNING id",
+                      "$p", "$r", "$n", "$k", "$s", "$m", "$c", "$a", "$f", "$d", "$rev", "$sc", "$x");
         _updateMeta = Cmd("UPDATE entries SET size=$s, mtime=$m, ctime=$c, attrs=$a, file_id=$f, name_rev=CASE WHEN $rev>0 THEN $rev ELSE name_rev END WHERE id=$id",
                           "$s", "$m", "$c", "$a", "$f", "$rev", "$id");
         _rename = Cmd("UPDATE entries SET parent_id=$p, name=$n, depth=$d, name_rev=$rev WHERE id=$id", "$p", "$n", "$d", "$rev", "$id");
         _deleteOne = Cmd("DELETE FROM entries WHERE id=$id", "$id");
         _tomb = Cmd("INSERT INTO name_tombstones(id,rev) VALUES($id,$rev)", "$id", "$rev");
-        _children = Cmd("SELECT id,name,kind,size,mtime,ctime,attrs,file_id,scanned FROM entries WHERE parent_id=$p", "$p");
+        _children = Cmd("SELECT id,name,kind,size,mtime,ctime,attrs,file_id,scanned,xflags FROM entries WHERE parent_id=$p", "$p");
         _enqueueDir = Cmd("INSERT INTO name_queue(dir_id,priority,mode,seq,attempts,not_before) VALUES($id,$pr,$m,$seq,0,$nb) " +
                           "ON CONFLICT(dir_id) DO UPDATE SET priority=MIN(priority,excluded.priority), mode=MAX(mode,excluded.mode), not_before=MIN(not_before,excluded.not_before)",
                           "$id", "$pr", "$m", "$seq", "$nb");
@@ -47,6 +47,7 @@ public sealed class CatalogWriter
         _setDepthLimited = Cmd("INSERT INTO depth_limited(dir_id,root_id,hidden) VALUES($id,$r,$h) ON CONFLICT(dir_id) DO UPDATE SET hidden=excluded.hidden",
                                "$id", "$r", "$h");
         _clearDepthLimited = Cmd("DELETE FROM depth_limited WHERE dir_id=$id", "$id");
+        _setXFlags = Cmd("UPDATE entries SET xflags=$x, name_rev=$rev WHERE id=$id", "$x", "$rev", "$id");
         _setScanned = Cmd("UPDATE entries SET scanned=$t, mtime=CASE WHEN $m<>0 THEN $m ELSE mtime END WHERE id=$id", "$t", "$m", "$id");
     }
 
@@ -101,23 +102,24 @@ public sealed class CatalogWriter
         return c;
     }
 
-    public readonly record struct ChildRow(long Id, string Name, EntryKind Kind, long Size, long MTime, long CTime, long Attrs, long FileId, long Scanned);
+    public readonly record struct ChildRow(long Id, string Name, EntryKind Kind, long Size, long MTime, long CTime, long Attrs, long FileId, long Scanned, long XFlags = 0);
 
     public List<ChildRow> GetChildren(Batch b, long parentId)
     {
         var list = new List<ChildRow>();
         using var r = Bind(b, _children, parentId).ExecuteReader();
         while (r.Read())
-            list.Add(new ChildRow(r.GetInt64(0), r.GetString(1), (EntryKind)r.GetInt32(2), r.GetInt64(3), r.GetInt64(4), r.GetInt64(5), r.GetInt64(6), r.GetInt64(7), r.GetInt64(8)));
+            list.Add(new ChildRow(r.GetInt64(0), r.GetString(1), (EntryKind)r.GetInt32(2), r.GetInt64(3), r.GetInt64(4), r.GetInt64(5), r.GetInt64(6), r.GetInt64(7), r.GetInt64(8), r.GetInt64(9)));
         return list;
     }
 
-    public long Insert(Batch b, long parentId, long rootId, string name, EntryKind kind, long size, long mtime, long ctime, long attrs, long fileId, int depth)
+    /// <param name="xflags">EntryFlags.Outside / Lowered for folders of the folder index (TD-21), 0 otherwise.</param>
+    public long Insert(Batch b, long parentId, long rootId, string name, EntryKind kind, long size, long mtime, long ctime, long attrs, long fileId, int depth, long xflags = 0)
     {
         long rev = _db.NextRev();
-        long id = (long)Bind(b, _insert, parentId, rootId, name, (int)kind, size, mtime, ctime, attrs, fileId, depth, rev, 0L).ExecuteScalar()!;
+        long id = (long)Bind(b, _insert, parentId, rootId, name, (int)kind, size, mtime, ctime, attrs, fileId, depth, rev, 0L, xflags).ExecuteScalar()!;
         if (id >= int.MaxValue) throw new InvalidOperationException("Entry id space exhausted (2^31).");
-        b.Changes.Add(new NameChange((int)id, (int)parentId, NameIndexManager.ToFlags((int)kind, attrs, parentId == 0), name, rev, false));
+        b.Changes.Add(new NameChange((int)id, (int)parentId, NameIndexManager.ToFlags((int)kind, attrs, parentId == 0, xflags), name, rev, false));
         return id;
     }
 
@@ -129,17 +131,25 @@ public sealed class CatalogWriter
         if ((old.Attrs & relevant) != (attrs & relevant))
         {
             rev = _db.NextRev();
-            b.Changes.Add(new NameChange((int)old.Id, (int)parentId, NameIndexManager.ToFlags((int)old.Kind, attrs, parentId == 0), old.Name, rev, false));
+            b.Changes.Add(new NameChange((int)old.Id, (int)parentId, NameIndexManager.ToFlags((int)old.Kind, attrs, parentId == 0, old.XFlags), old.Name, rev, false));
         }
         Bind(b, _updateMeta, size, mtime, ctime, attrs, fileId, rev, old.Id).ExecuteNonQuery();
     }
 
+    /// <summary>Changes entries.xflags (folder index rules changed) and re-indexes the record with its new flags.</summary>
+    public void SetXFlags(Batch b, ChildRow old, long parentId, long xflags)
+    {
+        long rev = _db.NextRev();
+        Bind(b, _setXFlags, xflags, rev, old.Id).ExecuteNonQuery();
+        b.Changes.Add(new NameChange((int)old.Id, (int)parentId, NameIndexManager.ToFlags((int)old.Kind, old.Attrs, parentId == 0, xflags), old.Name, rev, false));
+    }
+
     /// <summary>Rename/move keeping the id (children keep their parent pointer).</summary>
-    public void Rename(Batch b, long id, long newParentId, string newName, int depth, EntryKind kind, long attrs)
+    public void Rename(Batch b, long id, long newParentId, string newName, int depth, EntryKind kind, long attrs, long xflags = 0)
     {
         long rev = _db.NextRev();
         Bind(b, _rename, newParentId, newName, depth, rev, id).ExecuteNonQuery();
-        b.Changes.Add(new NameChange((int)id, (int)newParentId, NameIndexManager.ToFlags((int)kind, attrs, newParentId == 0), newName, rev, false));
+        b.Changes.Add(new NameChange((int)id, (int)newParentId, NameIndexManager.ToFlags((int)kind, attrs, newParentId == 0, xflags), newName, rev, false));
     }
 
     /// <summary>Deletes an entry and (for directories) its whole subtree, writing tombstones.</summary>
@@ -167,6 +177,9 @@ public sealed class CatalogWriter
         if (kind == EntryKind.File) onFileDeleted?.Invoke(id);
         return n + 1;
     }
+
+    /// <summary>Deletes one row (no subtree), with its tombstone. For callers that delete large trees in several batches.</summary>
+    public void DeleteOne(Batch b, long id) => DeleteRow(b, id);
 
     private void DeleteRow(Batch b, long id)
     {

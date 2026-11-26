@@ -197,7 +197,7 @@ public sealed class NameIndexManager : IDisposable
                 // Delta = every entry changed after the covered revision (streamed, flushed as it grows).
                 _appliedRev = _manifest.CoveredRev;
                 using var cmd2 = con.CreateCommand();
-                cmd2.CommandText = "SELECT id, parent_id, kind, attrs, name, name_rev FROM entries WHERE name_rev > $r ORDER BY name_rev";
+                cmd2.CommandText = "SELECT id, parent_id, kind, attrs, name, name_rev, xflags FROM entries WHERE name_rev > $r ORDER BY name_rev";
                 cmd2.Parameters.AddWithValue("$r", _manifest.CoveredRev);
                 using var rd = cmd2.ExecuteReader();
                 var batch = new List<NameChange>(4096);
@@ -205,7 +205,7 @@ public sealed class NameIndexManager : IDisposable
                 {
                     long rev = rd.GetInt64(5);
                     batch.Add(new NameChange((int)rd.GetInt64(0), (int)rd.GetInt64(1),
-                        ToFlags(rd.GetInt32(2), rd.GetInt64(3), rd.GetInt64(1) == 0), rd.GetString(4), rev, false));
+                        ToFlags(rd.GetInt32(2), rd.GetInt64(3), rd.GetInt64(1) == 0, rd.GetInt64(6)), rd.GetString(4), rev, false));
                     if (batch.Count == 4096) { ApplyLocked(batch); batch.Clear(); ct.ThrowIfCancellationRequested(); }
                 }
                 if (batch.Count > 0) ApplyLocked(batch);
@@ -218,9 +218,12 @@ public sealed class NameIndexManager : IDisposable
         }
     }
 
-    public static EntryFlags ToFlags(int kind, long attrs, bool isRoot)
+    /// <summary>Bits of entries.xflags that are copied to the record flags.</summary>
+    public const long XFlagsMask = (long)(EntryFlags.Outside | EntryFlags.Lowered);
+
+    public static EntryFlags ToFlags(int kind, long attrs, bool isRoot, long xflags = 0)
     {
-        var f = EntryFlags.None;
+        var f = (EntryFlags)(byte)(xflags & XFlagsMask);
         if (kind == 1) f |= EntryFlags.Directory;
         var a = (FileAttributes)attrs;
         if ((a & FileAttributes.Hidden) != 0) f |= EntryFlags.Hidden;

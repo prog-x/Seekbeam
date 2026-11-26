@@ -40,7 +40,15 @@ public sealed class ResultItem : INotifyPropertyChanged
             { Source: AppSource.Alias } => L.T("Kind_Alias"),
             _ => L.T("Kind_Application"),
         },
-        ResultKind.Folder => L.T("Kind_Folder"),
+        ResultKind.Folder => Result.Origin switch
+        {
+            ResultOrigin.FolderIndex => L.T("Origin_FolderIndex"),
+            ResultOrigin.Disk => L.T("Origin_Disk"),
+            ResultOrigin.Explorer => L.T("Origin_Explorer"),
+            ResultOrigin.Recent => L.T("Origin_Recent"),
+            ResultOrigin.Favorite => L.T("Origin_Favorite"),
+            _ => L.T("Kind_Folder"),
+        },
         _ => FormatSize(Result.Size) + (Result.ModifiedUtc > DateTime.MinValue ? " · " + Result.ModifiedUtc.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture) : ""),
     };
 

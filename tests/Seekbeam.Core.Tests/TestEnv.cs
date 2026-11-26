@@ -55,19 +55,19 @@ public sealed class TestEnv : IDisposable
         Open();
     }
 
-    public long AddRoot(string path)
+    public long AddRoot(string path, long xflags = 0)
     {
         using var b = Writer.Begin();
-        long id = Writer.Insert(b, 0, 1, path, EntryKind.Directory, 0, 0, 0, (long)FileAttributes.Directory, 0, 0);
+        long id = Writer.Insert(b, 0, 1, path, EntryKind.Directory, 0, 0, 0, (long)FileAttributes.Directory, 0, 0, xflags);
         Index.Apply(b.Commit());
         return id;
     }
 
-    public long Add(long parent, string name, bool dir = false, long attrs = 0)
+    public long Add(long parent, string name, bool dir = false, long attrs = 0, long xflags = 0)
     {
         using var b = Writer.Begin();
         long id = Writer.Insert(b, parent, 1, name, dir ? EntryKind.Directory : EntryKind.File, 10, DateTime.UtcNow.ToFileTimeUtc(), 0,
-            attrs | (dir ? (long)FileAttributes.Directory : 0), 0, 1);
+            attrs | (dir ? (long)FileAttributes.Directory : 0), 0, 1, xflags);
         Index.Apply(b.Commit());
         return id;
     }
@@ -96,7 +96,8 @@ public sealed class TestEnv : IDisposable
         Entries.InvalidatePathCache();
     }
 
-    public SearchResultSet Search(string q, int max = 20) => Engine.Search(new SearchRequest { Query = q, MaxResults = max }, CancellationToken.None);
+    public SearchResultSet Search(string q, int max = 20, SearchPurpose purpose = SearchPurpose.Launch) =>
+        Engine.Search(new SearchRequest { Query = q, MaxResults = max, Purpose = purpose }, CancellationToken.None);
     public List<string> Names(string q, int max = 20) => Search(q, max).Results.Select(r => r.Name).ToList();
 
     public void Dispose()

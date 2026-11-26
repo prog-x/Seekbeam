@@ -13,9 +13,10 @@ tests/Seekbeam.Core.Tests          unit + integration (real filesystem, watcher,
 tests/Seekbeam.Extraction.Tests    extractors (generated fixtures, malformed files, bombs, fuzzing)
 tests/Seekbeam.Immutability.Tests  IL analysis, SHA-256 integrity tests (including the real Seekbeam.exe killed then restarted)
 tests/Seekbeam.SandboxProbe        test-only exe playing a compromised extractor (SandboxTests prove what each sandbox level blocks)
-tools/Seekbeam.Bench               benchmarks (synthetic, search, index)
+tools/Seekbeam.Bench               benchmarks (synthetic, search, index, folderindex)
 tools/Seekbeam.DatasetGen          dataset generator, snapshots and integrity comparison
 tools/Seekbeam.FsAudit             independent filesystem change monitor
+tools/Seekbeam.DialogCheck         drives real Open/Save/folder dialogs and Explorer with the shipped "go to folder" code (report: docs/DIALOG_NAVIGATION_CHECK.md)
 tools/audit/                     dynamic audit scripts
 installer/                       WiX v6 MSI
 build/Build-Release.ps1          release pipeline
@@ -29,6 +30,7 @@ dotnet run -c Release --project tools/Seekbeam.Bench -- synthetic artifacts/benc
 dotnet run -c Release --project tools/Seekbeam.DatasetGen -- tree C:\SeekbeamBench\disk1m 1000000
 dotnet run -c Release --project tools/Seekbeam.Bench -- index artifacts/bench/disk1m-data C:\SeekbeamBench\disk1m Performance
 pwsh tools/audit/Run-DynamicAudit.ps1
+dotnet run --project tools/Seekbeam.DialogCheck -- report.md --app src/Seekbeam.App/bin/Debug/net10.0-windows/Seekbeam.exe
 pwsh build/Build-Release.ps1
 ```
 

@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seekbeam.FsAudit", "tools\S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seekbeam.SandboxProbe", "tests\Seekbeam.SandboxProbe\Seekbeam.SandboxProbe.csproj", "{8028194C-E144-42D0-8B34-8D46F52C5C8C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seekbeam.DialogCheck", "tools\Seekbeam.DialogCheck\Seekbeam.DialogCheck.csproj", "{4D4FA094-4D5F-42F3-B800-F5E0073D1612}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +175,18 @@ Global
 		{8028194C-E144-42D0-8B34-8D46F52C5C8C}.Release|x64.Build.0 = Release|Any CPU
 		{8028194C-E144-42D0-8B34-8D46F52C5C8C}.Release|x86.ActiveCfg = Release|Any CPU
 		{8028194C-E144-42D0-8B34-8D46F52C5C8C}.Release|x86.Build.0 = Release|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Debug|x64.Build.0 = Debug|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Debug|x86.Build.0 = Debug|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Release|x64.ActiveCfg = Release|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Release|x64.Build.0 = Release|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Release|x86.ActiveCfg = Release|Any CPU
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -189,5 +203,6 @@ Global
 		{79A2DEA8-902B-4A0F-94DC-FCC6BCC47D8A} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{B421C15D-3526-44BA-86FF-AAF4E2AE91F5} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{8028194C-E144-42D0-8B34-8D46F52C5C8C} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{4D4FA094-4D5F-42F3-B800-F5E0073D1612} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal

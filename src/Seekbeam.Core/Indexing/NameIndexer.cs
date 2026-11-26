@@ -19,6 +19,10 @@ public sealed record SyncRootsCommand(SeekbeamConfig Config) : IndexCommand;
 public sealed record ReconcileCommand(long? RootId, QueuePriority Priority) : IndexCommand;
 public sealed record DiscoverCommand(string FilePath) : IndexCommand;
 public sealed record ReindexAllCommand : IndexCommand;
+/// <summary>A folder outside the index was used (dialog, Explorer, recent item): remember it in the folder index (TD-21).</summary>
+public sealed record LearnFolderCommand(string FolderPath) : IndexCommand;
+/// <summary>Full re-walk of the folder index (periodic; directory events are watched in between).</summary>
+public sealed record ReconcileFolderIndexCommand(QueuePriority Priority) : IndexCommand;
 
 public sealed class NameIndexerStats
 {
@@ -74,11 +78,22 @@ public sealed class NameIndexer : IDisposable
     /// <summary>Raised after roots changed (watchers must be refreshed).</summary>
     public event Action<ScopeRules>? ScopeChanged;
 
+    private readonly Func<IEnumerable<string>> _fixedDrives;
+    private SeekbeamConfig? _lastConfig;
+
+    /// <summary>
+    /// Folders never walked by the folder index whatever the configuration: Seekbeam's own program folder (it receives the
+    /// sandbox's read permission, audit W7, so it must stay outside the indexing perimeter). Set before <c>Start</c>.
+    /// </summary>
+    public IReadOnlyList<string> ExcludedFromFolderIndex { get; set; } = [];
+
+    /// <param name="fixedDrives">Drives walked by the folder index (default: the ready fixed drives of the machine).</param>
     public NameIndexer(CatalogDb db, CatalogWriter writer, NameIndexManager index, EntryStore entries, SeekbeamStorage storage,
-        IWorkGate gate, Func<IEnumerable<string>> supportedExtensions)
+        IWorkGate gate, Func<IEnumerable<string>> supportedExtensions, Func<IEnumerable<string>>? fixedDrives = null)
     {
         _db = db; _writer = writer; _index = index; _entries = entries; _storage = storage; _gate = gate;
         _supportedExtensions = supportedExtensions;
+        _fixedDrives = fixedDrives ?? FixedDrives;
         _scanner = new DirectoryScanner(writer);
         _scope = new ScopeRules([], [], storage.DataRoot);
         _content = ContentEligibility.None;
@@ -333,7 +348,86 @@ public sealed class NameIndexer : IDisposable
             case ReconcileCommand rc: EnqueueRoots(rc.RootId, rc.Priority); break;
             case DiscoverCommand d: Discover(d.FilePath); break;
             case ReindexAllCommand: ReindexAll(); break;
+            case LearnFolderCommand l: LearnFolder(l.FolderPath); break;
+            case ReconcileFolderIndexCommand rf: EnqueueFolderIndex(rf.Priority); break;
         }
+    }
+
+    /// <summary>Ready fixed drives of the machine ("C:\", "D:\").</summary>
+    public static IEnumerable<string> FixedDrives()
+    {
+        var list = new List<string>();
+        try
+        {
+            foreach (var d in DriveInfo.GetDrives())
+                if (d.DriveType == DriveType.Fixed && d.IsReady) list.Add(d.Name); // "C:\"
+        }
+        catch (Exception ex) { Log.Warn("FolderIndex", "Drive list: " + ex.Message); }
+        return list;
+    }
+
+    private void EnqueueFolderIndex(QueuePriority priority)
+    {
+        using var b = _writer.Begin();
+        foreach (var r in _scope.Roots)
+            if (r.FoldersOnly) _writer.EnqueueDirectory(b, r.RootEntryId, priority, ScanMode.Recursive);
+        b.Commit();
+        _db.SetMeta("folderindex:reconciled", DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        _wake.Set();
+    }
+
+    /// <summary>Last full walk of the folder index (null if never).</summary>
+    public DateTime? FolderIndexReconciledUtc =>
+        long.TryParse(_db.GetMeta("folderindex:reconciled"), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long t)
+            ? new DateTime(t, DateTimeKind.Utc) : null;
+
+    /// <summary>
+    /// Remembers a folder used outside the index. Covered folders are ignored (an indexed location, or the drive walk);
+    /// a new one becomes a root of the folder index with <see cref="FolderIndexConfig.LearnedDepth"/> levels below it.
+    /// </summary>
+    private void LearnFolder(string folder)
+    {
+        var cfg = _lastConfig;
+        if (cfg == null || !cfg.FolderIndex.Enabled || !cfg.FolderIndex.LearnFolders) return;
+        string p = FolderIndexPlanner.Normalize(folder);
+        if (p.Length < 3 || _storage.IsUnderDataRoot(p)) return;
+        if (_scope.IsInScope(p, out _)) return; // already in the index (location or folder index)
+        bool known;
+        lock (_db.WriteLock)
+        {
+            using var cmd = _db.Writer.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM learned_folders WHERE path=$p";
+            cmd.Parameters.AddWithValue("$p", p);
+            known = (long)cmd.ExecuteScalar()! > 0;
+            cmd.CommandText = "INSERT INTO learned_folders(path,last_used) VALUES($p,$t) ON CONFLICT(path) DO UPDATE SET last_used=$t; " +
+                              "DELETE FROM learned_folders WHERE path IN (SELECT path FROM learned_folders ORDER BY last_used DESC LIMIT -1 OFFSET $max);";
+            cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.Ticks);
+            cmd.Parameters.AddWithValue("$max", cfg.FolderIndex.MaxLearned);
+            cmd.ExecuteNonQuery();
+        }
+        if (known) return;
+        Log.Info("FolderIndex", "Learned folder " + Log.P(p));
+        SyncRoots(cfg);
+    }
+
+    private List<string> LearnedFolders()
+    {
+        var list = new List<string>();
+        lock (_db.WriteLock)
+        {
+            using var cmd = _db.Writer.CreateCommand();
+            cmd.CommandText = "SELECT path FROM learned_folders ORDER BY last_used DESC";
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) list.Add(r.GetString(0));
+        }
+        return list;
+    }
+
+    /// <summary>Forgets every learned folder (privacy reset); their folders leave the index at the next sync.</summary>
+    public void ForgetLearnedFolders()
+    {
+        lock (_db.WriteLock) CatalogDb.Exec(_db.Writer, "DELETE FROM learned_folders;");
+        if (_lastConfig is { } c) Post(new SyncRootsCommand(c));
     }
 
     private IReadOnlyList<(long RootId, string RootPath, long RootEntryId)> RootTuples() =>
@@ -381,7 +475,8 @@ public sealed class NameIndexer : IDisposable
         using (var b = _writer.Begin())
         {
             if (exInfo != null) _writer.Delete(b, exInfo.Id, exInfo.Kind); // overwritten target
-            _writer.Rename(b, info.Id, parentId.Value, newName, (parent?.Depth ?? 0) + 1, info.Kind, info.Attributes);
+            _writer.Rename(b, info.Id, parentId.Value, newName, (parent?.Depth ?? 0) + 1, info.Kind, info.Attributes,
+                root.FoldersOnly ? DirectoryScanner.FolderXFlags(root, newPath) : info.XFlags);
             if (info.Kind == EntryKind.File && _content.IsEligible(root, newPath, info.Size, (FileAttributes)info.Attributes)
                 && !string.Equals(Path.GetExtension(oldPath), Path.GetExtension(newPath), StringComparison.OrdinalIgnoreCase))
                 _writer.EnqueueContent(b, info.Id, QueuePriority.Event, ContentOp.Index);
@@ -393,8 +488,9 @@ public sealed class NameIndexer : IDisposable
     private void EnqueueRoots(long? rootId, QueuePriority priority)
     {
         using var b = _writer.Begin();
+        // "All roots" means the indexed locations: the folder index has its own, much less frequent, reconciliation.
         foreach (var r in _scope.Roots)
-            if (rootId == null || r.RootId == rootId) _writer.EnqueueDirectory(b, r.RootEntryId, priority, ScanMode.Recursive);
+            if (rootId == null ? !r.FoldersOnly : r.RootId == rootId) _writer.EnqueueDirectory(b, r.RootEntryId, priority, ScanMode.Recursive);
         b.Commit();
         _wake.Set();
     }
@@ -434,44 +530,95 @@ public sealed class NameIndexer : IDisposable
         }
     }
 
-    /// <summary>Synchronises the roots table with configuration; returns quickly (large deletions are batched).</summary>
+    private readonly record struct DesiredRoot(RootConfig Config, RootKind Kind, FolderIndexOrigin? Origin);
+
+    /// <summary>
+    /// Synchronises the roots table with configuration: the indexed locations, and the start points of the folder index
+    /// planned by <see cref="FolderIndexPlanner"/>. Returns quickly (large deletions are batched).
+    /// </summary>
     private void SyncRoots(SeekbeamConfig cfg)
     {
+        _lastConfig = cfg;
         _discoveryBudget = cfg.Discovery.MaxDirectoriesPerHour;
-        var desired = cfg.Roots.Where(r => r.Enabled && !string.IsNullOrWhiteSpace(r.Path)).ToList();
-        var existing = new List<(long Id, string Path, long EntryId)>();
-        lock (_db.WriteLock)
-        {
-            using var cmd = _db.Writer.CreateCommand();
-            cmd.CommandText = "SELECT id, path, entry_id FROM roots";
-            using var r = cmd.ExecuteReader();
-            while (r.Read()) existing.Add((r.GetInt64(0), r.GetString(1), r.GetInt64(2)));
-        }
-        var scopes = new List<RootScope>();
-        foreach (var rc in desired)
+        var desired = new List<DesiredRoot>();
+        foreach (var rc in cfg.Roots.Where(r => r.Enabled && !string.IsNullOrWhiteSpace(r.Path)))
         {
             if (_storage.IsUnderDataRoot(rc.Path) || rc.Path.Equals(_storage.DataRoot, StringComparison.OrdinalIgnoreCase))
             { Log.Warn("Roots", "Refusing root inside the Seekbeam data directory: " + Log.P(rc.Path)); continue; }
-            var ex = existing.FirstOrDefault(e => e.Path.Equals(rc.Path, StringComparison.OrdinalIgnoreCase));
+            desired.Add(new DesiredRoot(rc, RootKind.Location, null));
+        }
+        List<FolderIndexRoot> plan = [];
+        try { plan = FolderIndexPlanner.Plan(cfg, _fixedDrives(), LearnedFolders(), SourceFileAccess.DirectoryExists, _storage.DataRoot); }
+        catch (Exception ex) { Log.Warn("FolderIndex", "Planning failed: " + ex.Message); }
+        foreach (var p in plan)
+            if (!_storage.IsUnderDataRoot(p.Path) && !desired.Any(d => d.Config.Path.Equals(p.Path, StringComparison.OrdinalIgnoreCase)))
+                desired.Add(new DesiredRoot(p.Config, RootKind.FolderIndex, p.Origin));
+
+        var existing = new List<(long Id, string Path, long EntryId, RootKind Kind)>();
+        lock (_db.WriteLock)
+        {
+            using var cmd = _db.Writer.CreateCommand();
+            cmd.CommandText = "SELECT id, path, entry_id, kind FROM roots";
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) existing.Add((r.GetInt64(0), r.GetString(1), r.GetInt64(2), (RootKind)r.GetInt32(3)));
+        }
+        bool Wanted((long Id, string Path, long EntryId, RootKind Kind) e) =>
+            desired.Any(d => d.Kind == e.Kind && d.Config.Path.Equals(e.Path, StringComparison.OrdinalIgnoreCase));
+
+        // Removed roots first (a path may change kind: the folder-index copy must go before the location is created).
+        var removedLocations = new List<string>();
+        foreach (var ex in existing.Where(e => !Wanted(e)).ToList())
+        {
+            DeleteRootInChunks(ex.Id, ex.EntryId);
+            _entries.InvalidatePathCache();
+            existing.Remove(ex);
+            if (ex.Kind == RootKind.Location) removedLocations.Add(ex.Path);
+            Log.Info("Roots", (ex.Kind == RootKind.FolderIndex ? "Folder index: removed " : "Removed root ") + Log.P(ex.Path));
+        }
+
+        var fi = cfg.FolderIndex;
+        string[] excludedPrefixes = FolderIndexPlanner.ExpandedPrefixes(fi.ExcludedPaths.Concat(ExcludedFromFolderIndex));
+        string[] loweredPrefixes = FolderIndexPlanner.ExpandedPrefixes(fi.LowerRanked.Where(e => e.IndexOfAny(['\\', ':', '%']) >= 0));
+        var loweredNames = FolderIndexPlanner.LoweredNames(fi.LowerRanked);
+        var scopes = new List<RootScope>();
+        var newLocations = new List<string>();
+        foreach (var d in desired)
+        {
+            var rc = d.Config;
+            bool folders = d.Kind == RootKind.FolderIndex;
+            var scopeTemplate = new RootScope
+            {
+                RootId = 0, Path = rc.Path, Config = rc, Excludes = new ExclusionMatcher(rc.Excludes), Kind = d.Kind,
+                ExcludedPrefixes = folders ? excludedPrefixes : [], LoweredPrefixes = folders ? loweredPrefixes : [],
+                LoweredNames = folders ? loweredNames : new(StringComparer.OrdinalIgnoreCase), RelativeToVolume = folders,
+            };
+            var ex = existing.FirstOrDefault(e => e.Kind == d.Kind && e.Path.Equals(rc.Path, StringComparison.OrdinalIgnoreCase));
             long rootId, entryId;
+            // Locations keep the 1.0 format: an upgrade must not trigger a full rescan of every location.
             string cfgHash = string.Join("|", rc.MaxDepth, rc.IncludeHidden, rc.FollowLinks, rc.IndexContent, string.Join(";", rc.Excludes), string.Join(";", cfg.GlobalExcludes));
+            if (folders) cfgHash = "folders|" + cfgHash + "|" + string.Join(";", excludedPrefixes) + "#" + string.Join(";", fi.LowerRanked);
+            // The folder index never delays the indexed locations: its walk runs after them, at reconciliation priority.
+            var scanPriority = folders ? QueuePriority.Reconcile : QueuePriority.InitialScan;
             if (ex.Id == 0)
             {
                 using var b = _writer.Begin();
                 using (var ins = b.Tx.Connection!.CreateCommand())
                 {
                     ins.Transaction = b.Tx;
-                    ins.CommandText = "INSERT INTO roots(path) VALUES($p) RETURNING id";
+                    ins.CommandText = "INSERT INTO roots(path, kind) VALUES($p, $k) RETURNING id";
                     ins.Parameters.AddWithValue("$p", rc.Path);
+                    ins.Parameters.AddWithValue("$k", (int)d.Kind);
                     rootId = (long)ins.ExecuteScalar()!;
                 }
                 SourceFileAccess.TryGetMetadata(rc.Path, out var md);
-                entryId = _writer.Insert(b, 0, rootId, rc.Path, EntryKind.Directory, 0, md.LastWriteTimeUtc, md.CreationTimeUtc, (long)(md.Attributes | FileAttributes.Directory), 0, 0);
+                entryId = _writer.Insert(b, 0, rootId, rc.Path, EntryKind.Directory, 0, md.LastWriteTimeUtc, md.CreationTimeUtc,
+                    (long)(md.Attributes | FileAttributes.Directory), 0, 0, DirectoryScanner.FolderXFlags(scopeTemplate, rc.Path));
                 Exec(b, "UPDATE roots SET entry_id=$e WHERE id=$id", ("$e", entryId), ("$id", rootId));
-                _writer.EnqueueDirectory(b, entryId, QueuePriority.InitialScan, ScanMode.Recursive);
+                _writer.EnqueueDirectory(b, entryId, scanPriority, ScanMode.Recursive);
                 _index.Apply(b.Commit());
                 _db.SetMeta("rootcfg:" + rootId, cfgHash);
-                Log.Info("Roots", "Added root " + Log.P(rc.Path));
+                if (folders) Log.Info("FolderIndex", $"Added {d.Origin} " + Log.P(rc.Path));
+                else { Log.Info("Roots", "Added root " + Log.P(rc.Path)); newLocations.Add(rc.Path); }
             }
             else
             {
@@ -480,28 +627,109 @@ public sealed class NameIndexer : IDisposable
                 {
                     _db.SetMeta("rootcfg:" + rootId, cfgHash);
                     using var b = _writer.Begin();
-                    _writer.EnqueueDirectory(b, entryId, QueuePriority.InitialScan, ScanMode.Recursive);
+                    _writer.EnqueueDirectory(b, entryId, scanPriority, ScanMode.Recursive);
                     b.Commit();
                     Log.Info("Roots", "Root settings changed, reconciling " + Log.P(rc.Path));
                 }
             }
-            scopes.Add(new RootScope { RootId = rootId, Path = rc.Path, Config = rc, Excludes = new ExclusionMatcher(rc.Excludes), RootEntryId = entryId });
-        }
-        // Removed (or disabled) roots: drop their entries.
-        foreach (var ex in existing)
-        {
-            if (scopes.Any(s => s.RootId == ex.Id)) continue;
-            using var b = _writer.Begin();
-            _writer.Delete(b, ex.EntryId, EntryKind.Directory, id => _writer.EnqueueContent(b, id, QueuePriority.Maintenance, ContentOp.Delete));
-            Exec(b, "DELETE FROM roots WHERE id=$id", ("$id", ex.Id));
-            _index.Apply(b.Commit());
-            _entries.InvalidatePathCache();
-            Log.Info("Roots", "Removed root " + Log.P(ex.Path));
+            scopes.Add(new RootScope
+            {
+                RootId = rootId, Path = rc.Path, Config = rc, Excludes = scopeTemplate.Excludes, RootEntryId = entryId, Kind = d.Kind,
+                ExcludedPrefixes = scopeTemplate.ExcludedPrefixes, LoweredPrefixes = scopeTemplate.LoweredPrefixes,
+                LoweredNames = scopeTemplate.LoweredNames, RelativeToVolume = scopeTemplate.RelativeToVolume,
+            });
         }
         _content = new ContentEligibility(cfg.Content, _supportedExtensions());
         _scope = new ScopeRules(scopes, cfg.GlobalExcludes, _storage.DataRoot);
+        RebalanceFolderIndex(newLocations, removedLocations);
         ScopeChanged?.Invoke(_scope);
         _wake.Set();
+    }
+
+    /// <summary>Rows per transaction when a large tree is deleted (CLAUDE.md §13: small batches, short transactions).</summary>
+    internal const int DeleteChunk = 20_000;
+
+    /// <summary>
+    /// Removes a root and every entry of it, a bounded number of rows per transaction (a folder-index root can be a whole
+    /// drive). Rows are taken by root_id, so a partially deleted tree never leaves unreachable rows behind; the root entry
+    /// and its roots row go last. Interrupted (crash), the next sync finds the root still unwanted and continues.
+    /// </summary>
+    private void DeleteRootInChunks(long rootId, long rootEntryId)
+    {
+        var ids = new List<(long Id, int Kind)>(DeleteChunk);
+        while (true)
+        {
+            ids.Clear();
+            lock (_db.WriteLock)
+            {
+                using var cmd = _db.Writer.CreateCommand();
+                cmd.CommandText = "SELECT id, kind FROM entries WHERE root_id=$r AND id<>$e LIMIT $n";
+                cmd.Parameters.AddWithValue("$r", rootId);
+                cmd.Parameters.AddWithValue("$e", rootEntryId);
+                cmd.Parameters.AddWithValue("$n", DeleteChunk);
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) ids.Add((r.GetInt64(0), r.GetInt32(1)));
+            }
+            if (ids.Count == 0) break;
+            using var b = _writer.Begin();
+            foreach (var (id, kind) in ids)
+            {
+                _writer.DeleteOne(b, id);
+                if (kind == (int)EntryKind.File) _writer.EnqueueContent(b, id, QueuePriority.Maintenance, ContentOp.Delete);
+            }
+            _index.Apply(b.Commit());
+        }
+        using (var b = _writer.Begin())
+        {
+            _writer.DeleteOne(b, rootEntryId);
+            Exec(b, "DELETE FROM roots WHERE id=$id", ("$id", rootId));
+            _index.Apply(b.Commit());
+        }
+    }
+
+    /// <summary>Deletes a folder and its subtree, deepest rows first, a bounded number of rows per transaction.</summary>
+    private void DeleteSubtreeInChunks(long dirId)
+    {
+        var ids = new List<long>();
+        lock (_db.WriteLock)
+        {
+            using var cmd = _db.Writer.CreateCommand();
+            // Breadth-first (SQLite's recursive queue is FIFO): reversed, every child comes before its parent.
+            cmd.CommandText = "WITH RECURSIVE sub(id,kind) AS (SELECT id,kind FROM entries WHERE parent_id=$id " +
+                              "UNION ALL SELECT e.id,e.kind FROM entries e JOIN sub ON e.parent_id=sub.id WHERE sub.kind=1) SELECT id FROM sub";
+            cmd.Parameters.AddWithValue("$id", dirId);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetInt64(0));
+        }
+        ids.Reverse();
+        ids.Add(dirId);
+        for (int i = 0; i < ids.Count; i += DeleteChunk)
+        {
+            using var b = _writer.Begin();
+            for (int j = i; j < Math.Min(ids.Count, i + DeleteChunk); j++) _writer.DeleteOne(b, ids[j]);
+            _index.Apply(b.Commit());
+        }
+    }
+
+    /// <summary>
+    /// Keeps the folder index and the indexed locations disjoint right away (instead of at the next walk): a new location
+    /// drops the folder-index copy of its folder; a removed location is walked again by the folder index.
+    /// </summary>
+    private void RebalanceFolderIndex(List<string> newLocations, List<string> removedLocations)
+    {
+        var folderRoots = _scope.Roots.Where(r => r.FoldersOnly).Select(r => (r.RootId, r.Path, r.RootEntryId)).ToList();
+        if (folderRoots.Count == 0) return;
+        foreach (var path in newLocations)
+        {
+            if (EntryStore.Resolve(_db.Writer, path, folderRoots) is not long id) continue;
+            var info = EntryStore.Get(_db.Writer, id);
+            if (info == null || info.ParentId == 0 || (info.XFlags & (long)EntryFlags.Outside) == 0) continue;
+            DeleteSubtreeInChunks(id);
+            _entries.InvalidatePathCache();
+        }
+        foreach (var path in removedLocations)
+            if (Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(path)) is { } parent && _scope.FindRoot(parent) is { FoldersOnly: true })
+                EnqueuePath(parent, QueuePriority.Reconcile, ScanMode.Shallow);
     }
 
     public void Dispose()

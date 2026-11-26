@@ -89,6 +89,8 @@ name_queue(id PK, path UNIQUE, root_id, priority, mode, depth, attempts, not_bef
 content_queue(entry_id PK, priority, attempts, not_before, reason)
 depth_limited(dir_id PK, root_id, hidden)  -- folders at the root's MaxDepth whose content is not explored (schema v2)
 roots, apps, usage(path PK, launches, last_used, score), favorites, query_history, errors, meta
+-- v3: roots.kind (0 = indexed location, 1 = folder index), entries.xflags (EntryFlags.Outside / Lowered),
+--     learned_folders(path PK, last_used): folders used outside the index (TD-21)
 ```
 
 The path is not stored per file: it is rebuilt through `parent_id` (LRU cache of directory paths). Saving: ~60 % of the size.
@@ -115,7 +117,7 @@ The path is not stored per file: it is rebuilt through `parent_id` (LRU cache of
 `Normalizer`: invariant lowercase, NFD decomposition followed by removal of diacritics, ligatures (ß→ss, æ→ae, œ→oe, ø→o, ł→l…), UTF-8 encoding. The same function is used for the index and for queries, which makes search case- and accent-insensitive by construction. UTF-8 is self-synchronizing, so a byte search cannot produce false positives straddling two characters.
 
 ### 5.2 Launcher query
-Space-separated tokens, in any order, matched as substrings. Prefixes: `ext:pdf,docx`, `kind:file|folder|app`, `-excluded`, `"exact phrase"`, `in:path`.
+Space-separated tokens, in any order, matched as substrings. Prefixes: `ext:pdf,docx`, `kind:file|folder|app`, `-excluded`, `"exact phrase"`, `in:path`. `a\b` (or `a/b`) is a path chain: each fragment must appear in a segment strictly below the previous one (checked during the scan with a per-folder memo). An absolute path (`C:\Win`, `\\server\`, `%VAR%\`) is completed from the disk instead (`PathCompleter`, TD-21). A request has a purpose: **Launch** (applications, files and folders of the locations; folder-index folders only after them, or with `kind:folder`) or **Navigate** ("go to folder": folders first, folder index included, no applications, no content results).
 
 ### 5.3 Algorithm (per segment, in parallel over blocks of 64 k records)
 1. For each token, vectorized scan (`Span<byte>.IndexOf`) of the block text → bit mask per record.
@@ -149,6 +151,13 @@ Documented and tested additive score (`RankingTests`, query → expected result 
 | favorite | +400 |
 | fuzzy | −250 / error |
 | path depth | −5 / level |
+| path fragments in the typed order along the path (computed on the short list) | +150 |
+| per fragment at the start of a folder name of the path | +40 |
+| the last fragment names the item / starts its name | +100 / +150 |
+| the fragments lead to a folder above the item (item deeper than the target) | −150 |
+| folder of the folder index / ranked lower (Program Files, ProgramData, AppData) | −30 / −100 |
+| folder, "go to folder" mode, exact match only | +5,000 (folders before files) |
+| folder-index folder in the launcher (fallback) | −1,000,000 (after every location result) |
 
 Usage is capped below the gap between an exact match and a partial match: history can never override a clearly better textual match.
 
@@ -172,6 +181,9 @@ For one directory: streaming enumeration (`NtQueryDirectoryFile`, `FileIdFullDir
 ### 7.5 Opportunistic discovery
 Non-intrusive sources: (a) the user's "Recent Items" folder (`%APPDATA%\Microsoft\Windows\Recent`, `.lnk` files created by the shell on every open through Explorer or the standard dialog), watched and parsed by our read-only `.lnk` parser; (b) files opened through Seekbeam. Algorithm: path → already indexed? → inside a root? → excluded? → parent directory known? If not, the directory is queued (priority 1), its subdirectories are discovered according to the rules and eligible files are queued for content. The discovery budget is bounded: 1,000 directories per event and per hour.
 Not adopted: API hooks, kernel ETW or minifilter driver, considered intrusive or requiring administrator rights (see TD-11).
+
+### 7.6 Folder index (TD-21)
+A second kind of root (`roots.kind = 1`) records **folder names only** outside the indexed locations, in the same catalog and Name Index. `FolderIndexPlanner` (pure) decides where: every ready fixed drive (unless a location covers it whole), the folders a location excludes by name at its top (AppData), and the folders learned from use (`learned_folders`, network shares, removable drives) with 2 levels below. `DirectoryScanner` skips files and every other root (`ScopeRules.IsOtherRoot`) for these roots, applies absolute exclusions (`%SystemRoot%`) and sets `entries.xflags` (`Outside`, plus `Lowered` for Program Files, ProgramData, AppData), carried into the record flags (bits 32/64). Initial walk at reconciliation priority (after the locations), drives watched for **directory names only** (`FILE_NOTIFY_CHANGE_DIR_NAME`), full re-walk every 7 days. Adding a location deletes its folder-index copy; removing it hands its folders back to the folder index. Searches choose with `OutsideMode` (Exclude / Fallback / Include).
 
 ## 8. Extraction (isolated process)
 
@@ -210,11 +222,12 @@ Auto mode signals: system CPU (`GetSystemTimes`), memory (`GlobalMemoryStatusEx`
 
 ## 10. Windows integration (Seekbeam.App)
 
-- **Hotkey**: low-level keyboard hook `WH_KEYBOARD_LL` on a dedicated thread with its own message loop (no UI latency possible). Double-Ctrl state machine: two press-and-release of Ctrl alone, ≤ 400 ms, with no other key in between, left Ctrl, right Ctrl or both. Custom combinations go through `RegisterHotKey`. The hook never swallows the event (`CallNextHookEx` always called).
+- **Hotkey**: low-level keyboard hook `WH_KEYBOARD_LL` on a dedicated thread with its own message loop (no UI latency possible). Double-Ctrl state machine: two press-and-release of Ctrl alone, ≤ 400 ms, with no other key in between, left Ctrl, right Ctrl or both. Custom combinations go through `RegisterHotKey`. The hook never swallows an event, with one exception: in an Open/Save/folder dialog, a character typed in the file list (direct typing) and `Ctrl+G` (TD-20).
 - **Window**: borderless WPF, DWM rounded corners, pre-created and hidden at startup (shown in < 50 ms), positioned at the center of the active screen or near the cursor.
 - **Actions**: `ShellExecuteEx` (open, runas, openas, properties), `SHOpenFolderAndSelectItems`, clipboard. No action modifies a file.
 - **Applications**: Start menu and desktop (`.lnk` files parsed by our parser), `shell:AppsFolder` (IShellItem, UWP/MSIX AUMID), `.exe` files from configured folders.
 - **Run commands and aliases** (TD-19): files of the PATH folders (.com/.exe/.bat/.cmd/.msc/.cpl, not recursive, PATH read from the registry) and App Paths registrations, rescanned every 15 minutes (≈ 900 entries, 10–30 ms); user aliases from the configuration. Run commands match only on their exact name or a prefix of at least 3 letters. "command arguments" offers the command with those arguments.
+- **Go to folder** (TD-20): `NavigationTargets` recognises Open / Save As / folder-picker dialogs (`#32770` + `SHELLDLL_DefView`, file-name box by control id) and Explorer windows by window class only, and drives a dialog by putting the folder path (ending with `\`, existence checked) in its file-name box, giving it the focus (`WM_NEXTDLGCTL`) and posting Enter: the dialog navigates, never validates. `ExplorerShell` uses `IShellWindows` (open folders, active tab, `Navigate2`). `DialogKeyRouter`, on the keyboard-hook thread, takes direct typing in a dialog's file list and `Ctrl+G` (Quick Switch). The launcher, in "go to folder" mode, is glued under the target, searches with the Navigate purpose, lists Explorer, favourite and recent folders when empty, and gives typed letters back on `Esc`. Elevated targets (UIPI) and the old `SHBrowseForFolder` tree get the path copied to the clipboard. Verified on real dialogs by `tools/Seekbeam.DialogCheck`.
 - **Tray**: `NotifyIcon` (menu: search, advanced search, dashboard, pause, settings, quit).
 - **Auto start**: `HKCU\…\Run`. Single instance: named mutex + "show" event.
 

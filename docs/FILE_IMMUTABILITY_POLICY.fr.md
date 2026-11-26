@@ -15,9 +15,10 @@ Sont des **sources protégées** :
 2. tout fichier découvert de manière opportuniste, et le dossier « Éléments récents » de l'utilisateur ;
 3. tout fichier ouvert ou analysé par un extracteur, et tout fichier contenu dans une archive traitée ;
 4. les raccourcis et exécutables lus par l'index des applications (menu Démarrer, bureau, dossiers configurés) ;
-5. les cibles atteintes par un lien symbolique, une junction, un point de montage ou un chemin alternatif (8.3, `\\?\`, UNC, autre lettre de lecteur) : la protection s'applique à l'objet atteint, quel que soit le chemin.
+5. les cibles atteintes par un lien symbolique, une junction, un point de montage ou un chemin alternatif (8.3, `\\?\`, UNC, autre lettre de lecteur) : la protection s'applique à l'objet atteint, quel que soit le chemin ;
+6. les dossiers parcourus par l'**index des dossiers** (chaque disque fixe, les dossiers appris à l'usage) et les dossiers listés par la **complétion de chemin** (TD-21) : seules leurs listes sont lues, et ils sont protégés exactement comme les sources ci-dessus.
 
-**Seule exception** : le répertoire de données de Seekbeam (`%LOCALAPPDATA%\Seekbeam` ou `<exe>\Data` en mode portable). Il est automatiquement exclu de l'indexation et n'est donc jamais une source.
+**Seule exception** : le répertoire de données de Seekbeam (`%LOCALAPPDATA%\Seekbeam` ou `<exe>\Data` en mode portable). Il est automatiquement exclu de l'indexation et n'est donc jamais une source. Le **dossier du programme** Seekbeam est de même toujours tenu hors de l'index des dossiers (TD-21), car il reçoit la permission de lecture du bac à sable de l'extracteur (audit W7) ; les emplacements restent vérifiés comme avant (`TouchesScope`).
 
 ## 3. Opérations autorisées sur les sources
 
@@ -29,6 +30,10 @@ Sont des **sources protégées** :
 | Lecture de contenu | `CreateFileW` | `GENERIC_READ`, partage R/W/D, `OPEN_EXISTING`, `FILE_FLAG_SEQUENTIAL_SCAN`, `FILE_FLAG_OPEN_NO_RECALL` |
 | Surveillance | `ReadDirectoryChangesW` (FileSystemWatcher) | `FILE_LIST_DIRECTORY` |
 | Ouverture par l'utilisateur | `ShellExecuteEx` (`open`, `runas`, `openas`, `properties`), `SHOpenFolderAndSelectItems` | délégué au shell (§8) |
+| Index des dossiers, complétion de chemin | même énumération de dossiers que ci-dessus ; les fichiers n'y sont jamais ouverts | `FILE_LIST_DIRECTORY` |
+| Surveillance de l'index des dossiers | `ReadDirectoryChangesW` avec `FILE_NOTIFY_CHANGE_DIR_NAME` seulement | `FILE_LIST_DIRECTORY` |
+| Partages d'un serveur tapé (`\\serveur\`) | `NetShareEnum` niveau 1 | aucun handle (noms seulement) |
+| « Aller au dossier » dans une boîte d'une autre application (TD-20) | `WM_SETTEXT` / `WM_GETTEXT` / `WM_NEXTDLGCTL` vers sa zone « Nom du fichier », Entrée **postée** ; Explorateur : `IShellWindows` → `Navigate2` | aucun accès fichier par Seekbeam ; la boîte navigue seulement et n'est **jamais validée** (§8) |
 
 `OPEN_EXISTING` empêche par construction toute création. Le partage R/W/D garantit que Seekbeam ne bloque jamais une autre application.
 
@@ -68,7 +73,7 @@ Les deux sont refusées si l'emplacement est dans le périmètre d'indexation ou
 | Dynamique | `Seekbeam.FsAudit` : processus indépendant, `ReadDirectoryChangesW` avec **tous** les filtres pendant l'exécution réelle de Seekbeam.exe ; script ETW (administrateur) attribué au processus | comportement réel observé par le noyau |
 
 ### Scénarios de test d'intégrité
-Scan initial ; indexation des noms ; extraction de tous les formats ; archives (normales, imbriquées, bombe, chemins malveillants, chiffrées) ; indexation incrémentale ; surveillance (changements effectués **par le test** dans une zone tierce, exclus de la comparaison) ; découverte opportuniste ; réconciliation ; pause et reprise ; arrêt normal ; arrêt forcé de l'hôte et du moteur ; reprise après crash ; fichiers malformés ; accès refusé (ACL deny) ; fichiers verrouillés (ouverts en exclusif par le test) ; junctions et cycles ; fichiers volumineux ; lecture seule et cachés ; noms Unicode et chemins longs.
+Scan initial ; indexation des noms ; extraction de tous les formats ; archives (normales, imbriquées, bombe, chemins malveillants, chiffrées) ; indexation incrémentale ; surveillance (changements effectués **par le test** dans une zone tierce, exclus de la comparaison) ; découverte opportuniste ; réconciliation ; pause et reprise ; arrêt normal ; arrêt forcé de l'hôte et du moteur ; reprise après crash ; fichiers malformés ; accès refusé (ACL deny) ; fichiers verrouillés (ouverts en exclusif par le test) ; junctions et cycles ; fichiers volumineux ; lecture seule et cachés ; noms Unicode et chemins longs ; index des dossiers (une arborescence entière parcourue comme un disque, un dossier appris, un nouveau parcours complet) et complétion de chemin sur chaque dossier ; vraies boîtes Ouvrir / Enregistrer sous / choix de dossier et fenêtre de l'Explorateur pilotées par `tools/Seekbeam.DialogCheck` (chaque boîte fermée par Annuler, arborescence de test inchangée).
 
 ## 8. Limites de la garantie (assumées et documentées)
 
@@ -78,6 +83,7 @@ Scan initial ; indexation des noms ; extraction de tous les formats ; archives (
 4. **Fichiers cloud** : `FILE_FLAG_OPEN_NO_RECALL` et le filtrage par attributs empêchent l'hydratation. Un fournisseur cloud tiers non conforme pourrait toutefois réagir à l'énumération.
 5. **Antivirus et filtres tiers** : ils peuvent réagir à nos lectures. C'est hors du périmètre de Seekbeam.
 6. **Audit dynamique** : `ReadDirectoryChangesW` observe les effets mais ne les attribue pas à un processus. L'attribution exige ETW ou Procmon avec droits administrateur, et ce script est fourni mais pas exécuté dans la session de développement non élevée.
+7. **Boîtes de dialogue d'autres applications** (TD-20) : Seekbeam place le chemin d'un dossier dans leur zone « Nom du fichier » et poste Entrée ; la boîte se contente de naviguer. Une boîte Enregistrer sous garde le nom tapé par l'utilisateur et n'est jamais validée par Seekbeam (le chemin se termine par un séparateur et l'existence du dossier est vérifiée juste avant : la boîte ne peut pas le prendre pour un nom de fichier). Valider la boîte, et ce que l'application écrit ensuite, est l'action de l'utilisateur dans cette application, comme pour « Ouvrir » (§8.2).
 
 ## 9. Critères d'acceptation
 

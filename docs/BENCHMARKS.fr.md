@@ -96,3 +96,36 @@ La mémoire ne dépend pas du nombre de fichiers : seulement d'un lot de 10 000 
 | Scan ≥ 20 000 entrées/s (Performance) | 27 159 entrées/s | ✅ |
 | ≤ 120 octets/entrée | 210 octets/entrée | ❌ (catalogue SQLite et index secondaires ; piste dans PROJECT_STATUS) |
 | Événement → recherchable ≤ 3 s | coalescence 1,5 s + scan ; vérifié en test (≤ 10 s d'attente, typiquement < 2 s) | ✅ |
+
+## 6. Index des dossiers et « aller au dossier » (2026-11-26, TD-20/TD-21)
+
+Même VM (i9-14900K, 16 vCPU, 9,3 Go de RAM lors de cette mesure), build Release. L'index des dossiers a été mesuré sur le **vrai disque C:** du poste de développement, avec les exclusions par défaut (aucun emplacement indexé, pour que tout passe par l'index des dossiers).
+
+```powershell
+dotnet run -c Release --project tools/Seekbeam.Bench -- folderindex <dataDir> [Performance|Auto]
+```
+
+| Mesure | Mode Performance | Mode Automatique (par défaut) |
+|---|---|---|
+| Dossiers parcourus (C:, profondeur 16, Windows/caches/dossiers de build exclus) | **93 816** | 93 816 |
+| Durée du parcours | **12,0 s** (7 845 dossiers/s) | 54,9 s (1 708 dossiers/s : le gestionnaire de ressources le régule) |
+| CPU | 8,8 s, **0,74 cœur** | 18,9 s, **0,34 cœur** |
+| RAM privée pic / fin | 154 / 141 Mo | **93 / 93 Mo** |
+| Catalogue + index des noms | **19,8 + 3,6 Mo** (≈ 250 octets/dossier) | idem |
+| Recherche « aller au dossier » pendant le parcours | p50 0,7 ms, p95 5,9 ms, max 30,9 ms | p50 0,5 ms, **p95 1,0 ms**, max 25,1 ms |
+| Recherche « aller au dossier » ensuite (20 requêtes × 20, top 8) | p50 0,3 ms, **p95 1,0 ms**, p99 1,1 ms | p50 0,3 ms, p95 1,3 ms, p99 1,7 ms |
+
+Exemples sur ce disque : `prog fil` → `C:\Program Files` ; `prog\micro` → `C:\Program Files (x86)\Microsoft` (ce cas a conduit au signal `LeafPrefix` et à une pénalité « classé plus bas » plus douce, voir TD-21).
+
+**Recherche du launcher, aucune régression** (1 M synthétique, graine 42, 40 requêtes × 20, même machine ; la version précédente (HEAD) et la nouvelle, construites et exécutées l'une après l'autre) :
+
+| Version | p50 | p95 | p99 | Frappe successive p95 |
+|---|---|---|---|---|
+| Avant (HEAD), peuplement + recherche | 3,49 ms | 12,59 ms | 20,61 ms | 18,29 ms |
+| Après, peuplement + recherche | 3,30 ms | 12,54 ms | 19,61 ms | 19,65 ms |
+| Avant (HEAD), nouvelle recherche | 3,50 ms | 10,57 ms | 18,08 ms | 17,05 ms |
+| Après, nouvelle recherche | 3,50 ms | 9,52 ms | 11,12 ms | 18,57 ms |
+
+Les écarts restent dans le bruit de la VM : les contrôles de l'index des dossiers coûtent un test de drapeau par enregistrement, les signaux d'ordre du chemin ne sont calculés que sur la liste courte, et les chaînes `a\b` seulement quand elles sont tapées.
+
+**Vraies boîtes de dialogue** : `tools/Seekbeam.DialogCheck` (36/36, voir [DIALOG_NAVIGATION_CHECK.fr.md](DIALOG_NAVIGATION_CHECK.fr.md)) exécute toute la chaîne, du double Ctrl au-dessus de la boîte jusqu'à la boîte qui affiche le dossier, en 1 s environ par cas, attentes de l'outil comprises ; le launcher apparaît collé sous la boîte.

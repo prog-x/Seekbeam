@@ -15,7 +15,11 @@ Après l'installation, Seekbeam démarre en arrière-plan : une icône apparaît
 - Une seule lettre cherche les noms qui commencent par cette lettre (ou dont un mot commence par elle).
 - **Le contenu des documents aussi** : le launcher affiche aussi les documents dont le contenu indexé contient tous les mots (ou des mots qui commencent ainsi), avec le passage où ils apparaissent. Ils occupent les lignes libres de la liste ; si les résultats par nom la remplissent déjà, ils en prennent quand même les deux dernières lignes (avec les 8 lignes par défaut), et ils passent avant les correspondances approximatives de nom (≈). Un PDF dont le nom ne contient aucun des mots tapés est donc trouvé si son texte les contient. Ces résultats arrivent une fraction de seconde après les résultats par nom, qui ne sont jamais retardés. Pas pour les requêtes de moins de 3 caractères ni celles limitées par `kind:` / `in:` ; `ext:` est respecté. Pour « une partie des mots » et les autres filtres : recherche avancée (`Ctrl+D`).
 
-Opérateurs : `"phrase exacte"`, `-motexclu`, `ext:pdf,docx`, `kind:file`, `kind:folder`, `kind:app`, `in:dossier`.
+Opérateurs : `"phrase exacte"`, `-motexclu`, `ext:pdf,docx`, `kind:file`, `kind:folder`, `kind:app`, `in:dossier`, et :
+- `src\seek` (ou `src/seek`) : des bribes de chemin dans l'ordre de la hiérarchie : `seek` doit se trouver dans un dossier (ou un nom) **sous** un dossier correspondant à `src` ;
+- `C:\Win`, `\\serveur\`, `%APPDATA%\Mic` : un **chemin absolu** est complété en direct depuis le disque, comme dans la barre d'adresse de l'Explorateur (dossiers d'abord). Taper `\\serveur\` liste les partages du serveur.
+
+**Bribes de chemin.** Les mots tapés dans l'ordre du chemin sont mieux classés : `sou per see` place `C:\source\perso\Seekbeam` en tête, et le dernier mot désigne la cible (`seek src` donne le dossier `src`, pas ce qu'il contient).
 
 Le classement privilégie la correspondance exacte, le début du nom, les débuts de mots, les applications et vos éléments les plus utilisés. L'historique ne peut jamais dépasser une correspondance nettement meilleure.
 
@@ -46,6 +50,21 @@ Les **alias** sont vos propres mots-clés (**Paramètres → Applications → Al
 Seekbeam est livré avec un alias : **`hosts`** ouvre `%SystemRoot%\System32\drivers\etc\hosts` dans le Bloc-notes **en tant qu'administrateur**, car l'enregistrement de ce fichier l'exige ; Windows demande confirmation (UAC). Vous pouvez le modifier ou le supprimer comme tout autre alias.
 
 > Comme pour « Ouvrir », Seekbeam demande seulement à Windows de lancer le programme. Ce que fait ensuite ce programme (le Bloc-notes qui enregistre le fichier hosts, par exemple) est votre action dans ce programme, pas celle de Seekbeam.
+
+## Boîtes de dialogue et dossiers (aller au dossier)
+Dans une boîte **Ouvrir**, **Enregistrer sous** ou de **choix de dossier** de n'importe quelle application, Seekbeam vous amène à un dossier en quelques touches, comme Listary.
+
+- **Double Ctrl** au-dessus de la boîte : le launcher s'ouvre **collé sous la boîte**, en mode « aller au dossier ». Tapez des bribes du chemin (`cli dup fact`) ou un chemin absolu (`D:\Pro`), puis `Entrée` : la boîte affiche ce dossier.
+- **Tapez directement** : quand la **liste de fichiers** de la boîte a le focus, taper une lettre ou un chiffre ouvre Seekbeam avec ce caractère. `Échap` ferme Seekbeam et rend les lettres à la liste (son propre « saut au nom commençant par… »). Les zones de saisie (nom de fichier, adresse, recherche) ne sont jamais concernées.
+- **Rien de tapé** : les dossiers ouverts dans l'Explorateur (Quick Switch), puis vos dossiers favoris et récents.
+- **Ctrl+G** dans une boîte : saut direct au dossier de la fenêtre de l'Explorateur la plus en avant.
+- **Explorateur** : un double Ctrl au-dessus d'une fenêtre de l'Explorateur pilote cette fenêtre (son onglet actif) ; la frappe dans l'Explorateur garde son comportement habituel.
+- Les dossiers passent en premier, puis les fichiers. Choisir un **fichier** ouvre son dossier ; dans une boîte « Ouvrir », son nom est inscrit dans la zone « Nom du fichier », prêt à être validé par vous.
+- Dans une boîte **Enregistrer sous**, le nom de fichier que vous avez tapé est conservé.
+
+**Seekbeam ne valide jamais une boîte de dialogue** : il se contente d'afficher le dossier. C'est vous qui confirmez (Ouvrir, Enregistrer, Sélectionner un dossier) : Seekbeam ne peut donc ni ouvrir ni écraser un fichier. Deux cas ne peuvent pas être pilotés ; le chemin est alors copié dans le presse-papiers (collez-le avec `Ctrl+V`) : les boîtes des applications lancées en administrateur (Windows les protège des applications normales) et l'ancienne boîte « Rechercher un dossier » en arborescence.
+
+**Dossiers hors de vos emplacements.** Pour que cela fonctionne partout où vous enregistrez, Seekbeam indexe aussi les **noms des dossiers** de tous les disques locaux fixes (jamais leurs fichiers, jamais leur contenu), ainsi que les dossiers que vous utilisez hors de l'index (partages réseau, clés USB) avec quelques niveaux en dessous. `C:\Windows`, les corbeilles, les caches, `node_modules`, `.git`, `bin`/`obj` sont écartés ; Program Files, ProgramData et AppData sont inclus mais classés plus bas. Dans le launcher normal, ces dossiers ne remplissent que les lignes libres, après vos emplacements (ou avec `kind:folder`). Chaque option se désactive dans **Paramètres → Dialogues et dossiers**.
 
 ## Recherche avancée (plein texte)
 `Ctrl+D` depuis le launcher, ou l'entrée « Recherche avancée » du menu Démarrer ou de l'icône.
@@ -81,6 +100,7 @@ Menu de l'icône → Paramètres, ou `Ctrl+,` dans le launcher. Voir [CONFIGURAT
   - **Profondeur maximale** (10 par défaut) : nombre de niveaux de dossiers explorés sous l'emplacement. Si des dossiers contiennent encore des éléments au-delà de cette limite, Seekbeam vous prévient : une notification unique après l'indexation, un avertissement dans le tableau de bord avec la liste des dossiers concernés, et une indication dans le launcher quand une recherche ne trouve rien. Augmentez la limite (ou mettez `-1` pour illimitée), ou ajoutez le dossier profond comme emplacement séparé.
 - **Contenu** : limites d'extraction, archives et **dossiers indexés par nom uniquement**. Les fichiers de ces dossiers restent trouvables par leur nom, mais leur contenu n'est jamais lu. Le dossier Téléchargements figure dans cette liste par défaut : les fichiers venus d'Internet et des e-mails y arrivent, et indexer leur contenu reviendrait à les analyser automatiquement, même ceux que vous n'avez jamais ouverts. Si vous le retirez, Seekbeam explique d'abord le risque et demande une confirmation.
 - **Applications** : sources d'applications (menu Démarrer, bureau, applications du Store, dossiers d'exécutables supplémentaires), commandes Exécuter et éditeur d'alias (voir [Commandes et alias](#commandes-et-alias)).
+- **Dialogues et dossiers** : un interrupteur par fonction (boîtes de dialogue, saisie directe, Quick Switch, Explorateur, dossiers récents, complétion de chemin) et l'index des dossiers hors des emplacements (disques, dossiers appris, profondeur, exclusions, dossiers classés plus bas, « oublier les dossiers appris »). Voir [Boîtes de dialogue et dossiers](#boîtes-de-dialogue-et-dossiers-aller-au-dossier).
 - **Ressources**, **Recherche et confidentialité**, **Surveillance**.
 
 ## Ressources

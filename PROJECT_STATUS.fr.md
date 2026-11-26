@@ -28,7 +28,7 @@ Version 1.0.0 terminée : fonctionnelle, testée, mesurée, documentée et insta
 | 17 Finalisation | ✅ | README, guides, release notes, rapport final |
 
 ## Tests
-197 tests automatisés verts : Core 87, Extraction 101, Immutabilité 9 (`dotnet test Seekbeam.sln`).
+307 tests automatisés verts : Core 196, Extraction 101, Immutabilité 10 (`dotnet test Seekbeam.sln`), plus 36/36 vérifications sur de vraies boîtes de dialogue Windows (`tools/Seekbeam.DialogCheck`, [docs/DIALOG_NAVIGATION_CHECK.fr.md](docs/DIALOG_NAVIGATION_CHECK.fr.md)).
 
 ## Bugs corrigés pendant la validation (avec test ou mesure)
 - Packing des structures Win32 (taille et dates de métadonnées fausses), trouvé par l'agent extracteurs.
@@ -47,9 +47,11 @@ Version 1.0.0 terminée : fonctionnelle, testée, mesurée, documentée et insta
 - La profondeur stockée du sous-arbre d'un dossier déplacé n'est mise à jour qu'au rescan suivant.
 - OCR non inclus ; archives ZIP seules ; pas de MFT/USN (élévation requise).
 - Audit ETW (administrateur) fourni mais non exécuté.
+- « Aller au dossier » : les boîtes des applications élevées (UIPI) et l'ancienne arborescence `SHBrowseForFolder` ne sont pas pilotées (le chemin est copié) ; les boîtes qui ne reposent pas sur les boîtes communes de Windows ne sont pas reconnues ; la saisie directe par le vrai hook n'est pas couverte par les tests automatisés (les touches injectées sont ignorées à dessein).
+- Index des dossiers : un changement des règles « classé plus bas » met à jour les dossiers existants au prochain parcours ; les dossiers appris viennent seulement de Seekbeam, des éléments récents et des chemins tapés (aucun hook dans les autres applications).
 - La réextraction automatique après changement de version d'un extracteur n'est pas implémentée (utiliser « Réindexer le contenu »).
 
 ## Prochaines évolutions possibles
 Mode USN/MFT pour les installations élevées, OCR Windows.Media.Ocr optionnel, 7z/rar, jump lists pour la découverte, signature des binaires, aperçu riche (images, PDF).
 
-Depuis la 1.0 (non publié) : interface en anglais, français, allemand et italien ([docs/TRANSLATING.fr.md](docs/TRANSLATING.fr.md)), licence MIT, profondeur par défaut de 10 avec signalement des dossiers non explorés, correctif de l'arrêt. Les travaux prévus, dont le reste de la préparation de la publication GitHub, sont suivis dans [ROADMAP.fr.md](ROADMAP.fr.md).
+Depuis la 1.0 (non publié) : « aller au dossier » dans les boîtes Ouvrir/Enregistrer/choix de dossier et l'Explorateur, avec saisie directe et Quick Switch (TD-20), index des dossiers hors des emplacements et bribes de chemin / chemins tapés (TD-21), interface en anglais, français, allemand et italien ([docs/TRANSLATING.fr.md](docs/TRANSLATING.fr.md)), licence MIT, profondeur par défaut de 10 avec signalement des dossiers non explorés, correctif de l'arrêt. Les travaux prévus, dont le reste de la préparation de la publication GitHub, sont suivis dans [ROADMAP.fr.md](ROADMAP.fr.md).

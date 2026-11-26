@@ -57,6 +57,21 @@ Fichier : `%LOCALAPPDATA%\Seekbeam\config.json` (ou `Data\config.json` en portab
 | | ReconcileIntervalHours | 24 | réconciliation périodique |
 | Discovery | Enabled, WatchRecentItems | true | découverte opportuniste (Éléments récents) |
 | | MaxDirectoriesPerHour | 2000 | budget |
+| Navigation | DialogIntegration | true | double Ctrl au-dessus d'une boîte Ouvrir / Enregistrer / choix de dossier : mode « aller au dossier » pour cette boîte (TD-20) |
+| | DirectTyping | true | une lettre ou un chiffre tapé dans la liste de fichiers de la boîte ouvre Seekbeam avec ce caractère ; Échap rend les lettres |
+| | QuickSwitch | true | Ctrl+G dans une boîte : dossier de la fenêtre de l'Explorateur la plus en avant ; dossiers ouverts dans l'Explorateur proposés quand rien n'est tapé |
+| | Explorer | true | double Ctrl au-dessus d'une fenêtre de l'Explorateur : « aller au dossier » dans cette fenêtre |
+| | RecentFolders | true | dossiers favoris et récents proposés quand rien n'est tapé |
+| | PathCompletion | true | un chemin absolu tapé (`C:\Win`, `\\serveur\`, `%APPDATA%\`) est complété depuis le disque |
+| FolderIndex | Enabled | true | noms des dossiers hors des emplacements indexés (ni fichiers, ni contenu, TD-21) |
+| | FixedDrives | true | parcourir chaque disque fixe prêt |
+| | LearnFolders | true | retenir les dossiers utilisés hors de l'index (réseau, disques amovibles) |
+| | MaxDepth / LearnedDepth | 16 / 2 | niveaux parcourus sous un disque / sous un dossier appris |
+| | MaxLearned | 200 | dossiers appris conservés (les plus anciens sont oubliés) |
+| | ReconcileIntervalHours | 168 | nouveau parcours complet (les événements de dossiers sont suivis entre-temps) |
+| | Excludes | `$Recycle.Bin`, WinSxS, caches, `node_modules`, `.git`, `bin`, `obj`, `**\AppData\Local\Temp`… | noms ou motifs (relatifs au disque) |
+| | ExcludedPaths | `%SystemRoot%` | dossiers absolus jamais parcourus |
+| | LowerRanked | `%ProgramFiles%`, `%ProgramFiles(x86)%`, `%ProgramData%`, `AppData` | dossiers absolus, ou noms de dossiers n'importe où, classés plus bas |
 | Logging | Level, RedactPaths, MaxFiles | Info, false, 5 | journaux locaux tournants (5 × 5 Mo) |
 
 ### Alias

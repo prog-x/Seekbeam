@@ -64,6 +64,21 @@
 | | ReconcileIntervalHours | 24 | periodic reconciliation |
 | Discovery | Enabled, WatchRecentItems | true | opportunistic discovery (Recent Items) |
 | | MaxDirectoriesPerHour | 2000 | budget |
+| Navigation | DialogIntegration | true | Ctrl twice over an Open / Save / folder dialog: "go to folder" mode for that dialog (TD-20) |
+| | DirectTyping | true | a letter or digit typed in the dialog's file list opens Seekbeam with it; Esc gives the letters back |
+| | QuickSwitch | true | Ctrl+G in a dialog: folder of the front-most Explorer window; open Explorer folders listed when nothing is typed |
+| | Explorer | true | Ctrl twice over an Explorer window: "go to folder" in that window |
+| | RecentFolders | true | favourite and recent folders listed when nothing is typed |
+| | PathCompletion | true | an absolute path typed (`C:\Win`, `\\server\`, `%APPDATA%\`) is completed from the disk |
+| FolderIndex | Enabled | true | folder names outside the indexed locations (no files, no content, TD-21) |
+| | FixedDrives | true | walk every ready fixed drive |
+| | LearnFolders | true | remember folders used outside the index (network, removable drives) |
+| | MaxDepth / LearnedDepth | 16 / 2 | levels walked below a drive / below a learned folder |
+| | MaxLearned | 200 | learned folders kept (the oldest are forgotten) |
+| | ReconcileIntervalHours | 168 | full re-walk (directory events are watched in between) |
+| | Excludes | `$Recycle.Bin`, WinSxS, caches, `node_modules`, `.git`, `bin`, `obj`, `**\AppData\Local\Temp`… | names or patterns (relative to the drive) |
+| | excludedpaths | `%systemroot%` | absolute folders never walked |
+| | lowerranked | `%programfiles%`, `%programfiles(x86)%`, `%programdata%`, `appdata` | absolute folders, or folder names anywhere, ranked lower |
 | Logging | Level, RedactPaths, MaxFiles | Info, false, 5 | rotating local logs (5 × 5 MB) |
 
 ### Aliases

@@ -27,6 +27,9 @@ public sealed class HotkeyService : IDisposable
     private HotkeyConfig? _cfg;
     private volatile bool _suspended;
 
+    /// <summary>Keys typed in file dialogs (direct typing, Ctrl+G), also served by the keyboard hook (TD-20).</summary>
+    internal DialogKeyRouter Router { get; } = new();
+
     public event Action? LauncherRequested;
     public event Action? DeepSearchRequested;
     /// <summary>Raised on the UI thread when an alternative hotkey could not be registered (conflict).</summary>
@@ -39,7 +42,7 @@ public sealed class HotkeyService : IDisposable
         _detector.DoubleTapMs = cfg.DoubleTapMs;
         _detector.Side = cfg.CtrlSide;
         _doubleCtrlEnabled = cfg.DoubleCtrlEnabled;
-        if (cfg.DoubleCtrlEnabled) StartHook(); else StopHook();
+        if (cfg.DoubleCtrlEnabled || Router.Active) StartHook(); else StopHook();
         _msgWindow ??= new HwndSource(new HwndSourceParameters("Seekbeam.Hotkeys") { ParentWindow = new IntPtr(-3) /* HWND_MESSAGE */ });
         _msgWindow.RemoveHook(WndProc);
         _msgWindow.AddHook(WndProc);
@@ -133,7 +136,7 @@ public sealed class HotkeyService : IDisposable
     /// <summary>Windows silently removes slow LL hooks; if keyboard input happened but our hook saw none, reinstall it.</summary>
     private void CheckHealth()
     {
-        if (!_doubleCtrlEnabled || _hookThread == null) return;
+        if ((!_doubleCtrlEnabled && !Router.Active) || _hookThread == null) return;
         var lii = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
         if (!GetLastInputInfo(ref lii)) return;
         long sinceInput = (uint)Environment.TickCount - lii.dwTime;
@@ -155,8 +158,16 @@ public sealed class HotkeyService : IDisposable
             int msg = (int)wParam;
             bool down = msg is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN;
             bool up = msg is Win32.WM_KEYUP or Win32.WM_SYSKEYUP;
-            if ((down || up) && !_suspended && _detector.OnKey((int)k.vkCode, down, k.time))
+            if ((down || up) && !_suspended && _doubleCtrlEnabled && _detector.OnKey((int)k.vkCode, down, k.time))
                 ThreadPool.UnsafeQueueUserWorkItem(_ => LauncherRequested?.Invoke(), null); // never block the hook
+            // Direct typing / Ctrl+G in file dialogs. Injected keys (ours, when Esc gives the letters back) pass through.
+            if (down && !_suspended && (k.flags & Win32.LLKHF_INJECTED) == 0)
+            {
+                bool swallow = false;
+                try { swallow = Router.OnKeyDown(k.vkCode, k.scanCode); }
+                catch (Exception ex) { Log.Debug("Hotkey", "Key router: " + ex.Message); }
+                if (swallow) return 1;
+            }
         }
         return Win32.CallNextHookEx(_hook, nCode, wParam, lParam);
     }

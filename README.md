@@ -20,6 +20,7 @@ Seekbeam is a fast local search tool, application launcher and document indexer 
 - **Names and paths**: words in any order, partial words, case- and accent-insensitive, typo-tolerant. `Ant 202611 cahier` finds `20261121_cahier_des_charges_…_Anthropic_Lucens.docx`.
 - **Applications**: Start menu, desktop, Store apps (UWP/MSIX), and executables from folders you choose.
 - **Commands and aliases**: Win+R commands (`mstsc`, `regedit`, `services.msc`, with arguments: `mstsc /v:server`) and your own keywords (`hosts` opens the hosts file in Notepad as administrator).
+- **Go to folder in any Open / Save dialog**: Ctrl twice over the dialog (or just type in its file list), type bits of the path (`cli dup fact`) or an absolute path, Enter: the dialog shows that folder, like Listary. Works in Explorer too, with Quick Switch (`Ctrl+G`: folder of the last Explorer window). Seekbeam only navigates, it never validates the dialog. Folder names of every fixed drive are indexed for this (never files nor content). See the [user guide](docs/USER_GUIDE.md#dialogs-and-folders-go-to-folder).
 - **Full text**:
   - formats: PDF, Word (DOC/DOCX), Excel (XLS/XLSX), PowerPoint (PPT/PPTX), OpenDocument, RTF, HTML/XML, JSON/YAML/CSV, source code, logs and ZIP archives;
   - queries: exact phrases, `OR` and exclusions;
@@ -55,6 +56,7 @@ Details: [docs/INSTALLATION.md](docs/INSTALLATION.md). User guide: [docs/USER_GU
 | Ctrl+D | advanced search (full text) |
 | Ctrl+, | settings |
 | Esc | close |
+| Ctrl, Ctrl over an Open / Save dialog | go to folder in that dialog (Enter: go; Ctrl+G: last Explorer folder; Esc: back) |
 
 **Syntax:**
 - `word1 word2`: all words must match, as substrings;

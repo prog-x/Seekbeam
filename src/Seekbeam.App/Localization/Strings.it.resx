@@ -367,4 +367,50 @@ Indicizzare comunque il contenuto di Download?</value></data>
   <data name="Set_AliasEmptyTarget" xml:space="preserve"><value>L&apos;alias «{0}» non ha destinazione.</value></data>
   <data name="Set_AliasDuplicate" xml:space="preserve"><value>La parola chiave «{0}» è usata da più alias.</value></data>
   <data name="Dash_ContentQueueDeferred" xml:space="preserve"><value>Coda: {0:N0} file · {1:N0} rinviati (unità non disponibile o file bloccato)</value></data>
+  <data name="Launcher_HintDialog" xml:space="preserve"><value>Vai a una cartella: frammenti del suo percorso (proj cliente), oppure C:\…</value></data>
+  <data name="Launcher_HintExplorer" xml:space="preserve"><value>Vai a una cartella in questa finestra: frammenti del suo percorso, oppure C:\…</value></data>
+  <data name="Launcher_KeysDialog" xml:space="preserve"><value>↵ vai · Ctrl+G ultima cartella di Esplora file · Ctrl+↵ apri in Esplora file · Esc indietro</value></data>
+  <data name="Launcher_KeysNavigate" xml:space="preserve"><value>↵ vai · Ctrl+↵ apri in Esplora file · Esc indietro</value></data>
+  <data name="Launcher_NavLocations" xml:space="preserve"><value>Cartelle aperte in Esplora file, preferite e recenti · digita per cercare</value></data>
+  <data name="Launcher_NavNoLocation" xml:space="preserve"><value>Digita frammenti del percorso di una cartella, oppure un percorso assoluto (C:\…, \\server\…)</value></data>
+  <data name="NavTarget_FileOpen" xml:space="preserve"><value>Vai alla cartella · finestra «Apri»</value></data>
+  <data name="NavTarget_FileSave" xml:space="preserve"><value>Vai alla cartella · finestra «Salva» (il nome del file digitato viene mantenuto)</value></data>
+  <data name="NavTarget_FolderPicker" xml:space="preserve"><value>Vai alla cartella · selezione cartella</value></data>
+  <data name="NavTarget_LegacyFolderBrowser" xml:space="preserve"><value>Vecchia finestra di scelta cartella: il percorso scelto verrà copiato negli appunti</value></data>
+  <data name="NavTarget_Explorer" xml:space="preserve"><value>Vai alla cartella · questa finestra di Esplora file</value></data>
+  <data name="Nav_NoExplorer" xml:space="preserve"><value>Nessuna finestra di Esplora file è aperta.</value></data>
+  <data name="Nav_TargetGone" xml:space="preserve"><value>La finestra è stata chiusa nel frattempo.</value></data>
+  <data name="Nav_FolderMissing" xml:space="preserve"><value>Questa cartella non esiste più: {0}</value></data>
+  <data name="Nav_BlockedCopied" xml:space="preserve"><value>Questa finestra appartiene a un'applicazione eseguita come amministratore: Seekbeam non può pilotarla. Percorso copiato, incollalo con Ctrl+V: {0}</value></data>
+  <data name="Nav_UnsupportedCopied" xml:space="preserve"><value>Questa finestra di dialogo non può essere pilotata. Percorso copiato, incollalo con Ctrl+V: {0}</value></data>
+  <data name="Origin_FolderIndex" xml:space="preserve"><value>Cartella · fuori dall'indice</value></data>
+  <data name="Origin_Disk" xml:space="preserve"><value>Cartella · sul disco</value></data>
+  <data name="Origin_Explorer" xml:space="preserve"><value>Aperta in Esplora file</value></data>
+  <data name="Origin_Recent" xml:space="preserve"><value>Cartella recente</value></data>
+  <data name="Origin_Favorite" xml:space="preserve"><value>Cartella preferita</value></data>
+  <data name="Tab_Navigation" xml:space="preserve"><value>Finestre di dialogo e cartelle</value></data>
+  <data name="Set_NavGroup" xml:space="preserve"><value>Finestre «Apri» / «Salva» ed Esplora file</value></data>
+  <data name="Set_NavDialogs" xml:space="preserve"><value>Doppio Ctrl in una finestra «Apri», «Salva» o di selezione cartella: vai a una cartella in quella finestra</value></data>
+  <data name="Set_NavTyping" xml:space="preserve"><value>Digitare nell'elenco dei file di una finestra di dialogo apre Seekbeam (Esc restituisce le lettere all'elenco)</value></data>
+  <data name="Set_NavTypingTip" xml:space="preserve"><value>Sostituisce il «salto al nome che inizia con queste lettere» dell'elenco. Le caselle di testo (nome del file, indirizzo, ricerca) non sono mai coinvolte.</value></data>
+  <data name="Set_NavQuickSwitch" xml:space="preserve"><value>Quick Switch: Ctrl+G salta alla cartella dell'ultima finestra di Esplora file; vengono proposte le cartelle aperte in Esplora file</value></data>
+  <data name="Set_NavExplorer" xml:space="preserve"><value>Doppio Ctrl in una finestra di Esplora file: vai a una cartella in quella finestra</value></data>
+  <data name="Set_NavRecent" xml:space="preserve"><value>Proponi le cartelle preferite e recenti quando non è digitato nulla</value></data>
+  <data name="Set_NavPathCompletion" xml:space="preserve"><value>Completa un percorso assoluto digitato, dal disco (C:\Win…, \\server\…, %APPDATA%\…)</value></data>
+  <data name="Set_NavNote" xml:space="preserve"><value>Seekbeam si limita a navigare: non conferma mai una finestra di dialogo, quindi non apre né salva mai un file da solo. Le finestre delle applicazioni eseguite come amministratore e la vecchia finestra ad albero di scelta cartella non possono essere pilotate: il percorso viene allora copiato negli appunti.</value></data>
+  <data name="Set_FiGroup" xml:space="preserve"><value>Cartelle fuori dalle posizioni indicizzate</value></data>
+  <data name="Set_FiEnabled" xml:space="preserve"><value>Indicizza i nomi delle cartelle fuori dalle posizioni indicizzate (solo cartelle: né file, né contenuto)</value></data>
+  <data name="Set_FiDrives" xml:space="preserve"><value>Tutti i dischi locali fissi</value></data>
+  <data name="Set_FiLearn" xml:space="preserve"><value>Cartelle usate fuori dall'indice (condivisioni di rete, dischi rimovibili), con alcuni livelli sottostanti</value></data>
+  <data name="Set_FiDepth" xml:space="preserve"><value>Profondità massima</value></data>
+  <data name="Set_FiExcludes" xml:space="preserve"><value>Cartelle escluse (nomi o modelli, uno per riga)</value></data>
+  <data name="Set_FiExcludedPaths" xml:space="preserve"><value>Cartelle assolute escluse (una per riga, %VARIABILI% ammesse)</value></data>
+  <data name="Set_FiLower" xml:space="preserve"><value>Cartelle classificate più in basso (cartelle assolute o nomi di cartelle)</value></data>
+  <data name="Set_FiForget" xml:space="preserve"><value>Dimentica le cartelle apprese</value></data>
+  <data name="Set_FiForgotten" xml:space="preserve"><value>Cartelle apprese dimenticate.</value></data>
+  <data name="Set_FiStatus" xml:space="preserve"><value>{0:N0} cartelle fuori dalle posizioni · ultima scansione completa: {1}</value></data>
+  <data name="Set_FiNever" xml:space="preserve"><value>non ancora</value></data>
+  <data name="Set_FiNote" xml:space="preserve"><value>Vengono letti solo gli elenchi delle cartelle, con la priorità più bassa, dopo le posizioni indicizzate; le nuove cartelle vengono seguite man mano. Lì non viene mai scritto nulla.</value></data>
+  <data name="Dash_FolderIndex" xml:space="preserve"><value>Indice delle cartelle (fuori dalle posizioni): {0:N0} cartelle · ultima scansione {1}</value></data>
+  <data name="Nav_TimeoutCopied" xml:space="preserve"><value>La finestra non è passata alla cartella in tempo (posizione lenta?). Percorso copiato, incollalo con Ctrl+V: {0}</value></data>
 </root>

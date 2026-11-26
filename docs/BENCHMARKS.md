@@ -96,3 +96,36 @@ Memory does not depend on the number of files: only on one batch of 10,000 rows,
 | Scan ≥ 20,000 entries/s (Performance) | 27,159 entries/s | ✅ |
 | ≤ 120 bytes/entry | 210 bytes/entry | ❌ (SQLite catalog and secondary indexes; possible fix in PROJECT_STATUS) |
 | Event → searchable ≤ 3 s | 1.5 s coalescing + scan; verified in tests (≤ 10 s wait, typically < 2 s) | ✅ |
+
+## 6. Folder index and "go to folder" (2026-11-26, TD-20/TD-21)
+
+Same VM (i9-14900K, 16 vCPU, 9.3 GB of RAM at the time of this run), Release build. The folder index was measured on the **real C: drive** of the development machine, with the default exclusions (no indexed location, so that everything goes through the folder index).
+
+```powershell
+dotnet run -c Release --project tools/Seekbeam.Bench -- folderindex <dataDir> [Performance|Auto]
+```
+
+| Measure | Performance mode | Automatic mode (default) |
+|---|---|---|
+| Folders walked (C:, depth 16, Windows/caches/build folders excluded) | **93,816** | 93,816 |
+| Walk duration | **12.0 s** (7,845 folders/s) | 54.9 s (1,708 folders/s: the resource manager paces it) |
+| CPU | 8.8 s, **0.74 core** | 18.9 s, **0.34 core** |
+| Private RAM peak / end | 154 / 141 MB | **93 / 93 MB** |
+| Catalog + name index | **19.8 + 3.6 MB** (≈ 250 bytes/folder) | same |
+| "Go to folder" search during the walk | p50 0.7 ms, p95 5.9 ms, max 30.9 ms | p50 0.5 ms, **p95 1.0 ms**, max 25.1 ms |
+| "Go to folder" search afterwards (20 queries × 20, top 8) | p50 0.3 ms, **p95 1.0 ms**, p99 1.1 ms | p50 0.3 ms, p95 1.3 ms, p99 1.7 ms |
+
+Examples on that drive: `prog fil` → `C:\Program Files`; `prog\micro` → `C:\Program Files (x86)\Microsoft` (this case led to the `LeafPrefix` signal and a milder "ranked lower" penalty, see TD-21).
+
+**Launcher search, no regression** (1 M synthetic, seed 42, 40 queries × 20, same machine, the previous version (HEAD) and the new one built and run back to back):
+
+| Version | p50 | p95 | p99 | Successive typing p95 |
+|---|---|---|---|---|
+| Before (HEAD), populate + search | 3.49 ms | 12.59 ms | 20.61 ms | 18.29 ms |
+| After, populate + search | 3.30 ms | 12.54 ms | 19.61 ms | 19.65 ms |
+| Before (HEAD), search again | 3.50 ms | 10.57 ms | 18.08 ms | 17.05 ms |
+| After, search again | 3.50 ms | 9.52 ms | 11.12 ms | 18.57 ms |
+
+The differences are within the noise of the VM: the folder-index checks cost one flag test per record, the path-order signals are computed on the short list only, and `a\b` chains only when typed.
+
+**Real dialogs**: `tools/Seekbeam.DialogCheck` (36/36, see [DIALOG_NAVIGATION_CHECK.md](DIALOG_NAVIGATION_CHECK.md)) runs the whole chain, from double Ctrl over the dialog to the dialog showing the folder, in about 1 s per case including its own waits; the launcher appears glued under the dialog.

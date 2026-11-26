@@ -11,7 +11,7 @@ namespace Seekbeam.Core.Catalog;
 public sealed class CatalogDb : IDisposable
 {
     public const string FileName = "catalog.db";
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
     private readonly SeekbeamStorage _storage;
     private readonly SqliteConnection _writer;
     private readonly System.Collections.Concurrent.ConcurrentBag<SqliteConnection> _readers = new();
@@ -54,13 +54,13 @@ public sealed class CatalogDb : IDisposable
             CREATE TABLE IF NOT EXISTS roots(
               id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL UNIQUE COLLATE NOCASE, entry_id INTEGER NOT NULL DEFAULT 0,
               state INTEGER NOT NULL DEFAULT 0, last_full_scan INTEGER NOT NULL DEFAULT 0, last_reconcile INTEGER NOT NULL DEFAULT 0,
-              last_error TEXT);
+              last_error TEXT, kind INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS entries(
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               parent_id INTEGER NOT NULL, root_id INTEGER NOT NULL, name TEXT NOT NULL, kind INTEGER NOT NULL,
               size INTEGER NOT NULL DEFAULT 0, mtime INTEGER NOT NULL DEFAULT 0, ctime INTEGER NOT NULL DEFAULT 0,
               attrs INTEGER NOT NULL DEFAULT 0, file_id INTEGER NOT NULL DEFAULT 0, depth INTEGER NOT NULL DEFAULT 0,
-              name_rev INTEGER NOT NULL, scanned INTEGER NOT NULL DEFAULT 0);
+              name_rev INTEGER NOT NULL, scanned INTEGER NOT NULL DEFAULT 0, xflags INTEGER NOT NULL DEFAULT 0);
             CREATE UNIQUE INDEX IF NOT EXISTS ix_entries_parent_name ON entries(parent_id, name);
             CREATE INDEX IF NOT EXISTS ix_entries_rev ON entries(name_rev);
             CREATE INDEX IF NOT EXISTS ix_entries_root ON entries(root_id);
@@ -84,7 +84,15 @@ public sealed class CatalogDb : IDisposable
               path TEXT, message TEXT NOT NULL);
             -- v2: directories at their root's MaxDepth whose children were not explored (hidden = non-excluded children on disk).
             CREATE TABLE IF NOT EXISTS depth_limited(dir_id INTEGER PRIMARY KEY, root_id INTEGER NOT NULL, hidden INTEGER NOT NULL);
+            -- v3: folders learned from use outside the indexed locations (folder index, TD-21).
+            CREATE TABLE IF NOT EXISTS learned_folders(path TEXT PRIMARY KEY COLLATE NOCASE, last_used INTEGER NOT NULL) WITHOUT ROWID;
             """);
+        if (v is > 0 and < 3)
+        {
+            // v3: roots.kind (0 = indexed location, 1 = folder index) and entries.xflags (EntryFlags.Outside / Lowered).
+            Exec(_writer, "ALTER TABLE roots ADD COLUMN kind INTEGER NOT NULL DEFAULT 0;");
+            Exec(_writer, "ALTER TABLE entries ADD COLUMN xflags INTEGER NOT NULL DEFAULT 0;");
+        }
         Exec(_writer, $"PRAGMA user_version={SchemaVersion};");
         tx.Commit();
     }

@@ -77,9 +77,10 @@ public sealed class WatchService : IDisposable
     {
         // If the root has excluded direct children, watch each non-excluded top-level child recursively and the root itself
         // non-recursively: excluded noisy trees (AppData, node_modules…) never reach us and cannot overflow the buffer.
-        bool split = root.Config.Excludes.Any(e => !e.Contains('\\') && !e.Contains('/'));
-        if (!split) { Add(root.Path, recursive: true); return; }
-        Add(root.Path, recursive: false);
+        bool split = root.Config.Excludes.Any(e => !e.Contains('\\') && !e.Contains('/')) || root.ExcludedPrefixes.Length > 0;
+        bool foldersOnly = root.FoldersOnly;
+        if (!split) { Add(root.Path, recursive: true, foldersOnly); return; }
+        Add(root.Path, recursive: false, foldersOnly);
         using var reader = SourceFileAccess.CreateDirectoryReader();
         var children = new List<(string Name, FileAttributes A, uint Tag)>();
         reader.Read(root.Path, (in RawEntry e) => { if (e.IsDirectory) children.Add((e.Name.ToString(), e.Attributes, e.ReparseTag)); }, out _);
@@ -88,18 +89,24 @@ public sealed class WatchService : IDisposable
             string full = EntryStore.Combine(root.Path, name);
             if (_scope!.IsExcluded(root, name, full, attrs)) continue;
             if (!LinkPolicy.IsTraversableDirectory(tag, attrs)) continue;
-            try { Add(full, recursive: true); }
+            if (foldersOnly && _scope.IsOtherRoot(root, full)) continue; // an indexed location has its own watcher
+            try { Add(full, recursive: true, foldersOnly); }
             catch (Exception ex) { Log.Debug("Watch", $"Cannot watch {Log.P(full)}: {ex.Message}"); }
         }
     }
 
-    private void Add(string path, bool recursive)
+    /// <param name="foldersOnly">
+    /// Folder index (TD-21): only directory creations, deletions and renames are reported (FILE_NOTIFY_CHANGE_DIR_NAME),
+    /// so watching a whole drive costs nothing when files are written.
+    /// </param>
+    private void Add(string path, bool recursive, bool foldersOnly = false)
     {
         var w = new FileSystemWatcher(path)
         {
             IncludeSubdirectories = recursive,
             InternalBufferSize = 64 * 1024,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.Attributes | NotifyFilters.CreationTime,
+            NotifyFilter = foldersOnly ? NotifyFilters.DirectoryName
+                : NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.Attributes | NotifyFilters.CreationTime,
         };
         w.Created += (_, e) => OnChange(e.FullPath, created: true);
         w.Changed += (_, e) => OnChange(e.FullPath, created: false);
@@ -154,10 +161,13 @@ public sealed class WatchService : IDisposable
         Interlocked.Increment(ref _overflows);
         Log.Warn("Watch", $"Watcher error on {Log.P(path)} ({ex.GetType().Name}); scheduling reconciliation");
         var root = _scope?.FindRoot(path);
-        if (root != null && (!_overflowedRoots.TryGetValue(root.RootId, out var last) || DateTime.UtcNow - last > TimeSpan.FromMinutes(5)))
+        // Folder index: a whole drive. Re-walked at the lowest priority, at most once an hour (it never delays the locations).
+        var minGap = root?.FoldersOnly == true ? TimeSpan.FromHours(1) : TimeSpan.FromMinutes(5);
+        if (root != null && (!_overflowedRoots.TryGetValue(root.RootId, out var last) || DateTime.UtcNow - last > minGap))
         {
             _overflowedRoots[root.RootId] = DateTime.UtcNow;
-            _indexer.Post(new ReconcileCommand(root.RootId, Catalog.QueuePriority.Reconcile));
+            _indexer.Post(root.FoldersOnly ? new ReconcileFolderIndexCommand(Catalog.QueuePriority.Maintenance)
+                                           : new ReconcileCommand(root.RootId, Catalog.QueuePriority.Reconcile));
         }
     }
 
@@ -171,12 +181,26 @@ public sealed class WatchService : IDisposable
     {
         Interlocked.Exchange(ref _armed, 0);
         while (_renames.TryDequeue(out var r)) _indexer.Post(new RenameCommand(r.Old, r.New));
-        var dirs = _pendingDirs.Keys.ToList();
-        foreach (var d in dirs) _pendingDirs.TryRemove(d, out _);
+        var all = _pendingDirs.Keys.ToList();
+        foreach (var d in all) _pendingDirs.TryRemove(d, out _);
+        // Folder index: folder names only, each rescan is one cheap listing. A burst (a program being installed) is
+        // rescanned folder by folder at reconciliation priority, never as a re-walk of the whole drive.
+        var scope = _scope;
+        bool burst = all.Count > BurstThreshold;
+        var dirs = new List<string>(all.Count);
+        foreach (var d in all)
+        {
+            if (scope?.FindRoot(d) is { FoldersOnly: true })
+            {
+                _indexer.Post(new RescanPathCommand(d, burst ? Catalog.QueuePriority.Reconcile : Catalog.QueuePriority.Event, Catalog.ScanMode.Shallow));
+                Interlocked.Increment(ref _queued);
+            }
+            else dirs.Add(d);
+        }
         if (dirs.Count > BurstThreshold)
         {
-            // Burst: one reconciliation per affected root instead of thousands of rescans.
-            foreach (var rootId in dirs.Select(d => _scope?.FindRoot(d)?.RootId).Where(id => id != null).Distinct())
+            // Burst: one reconciliation per affected location instead of thousands of rescans.
+            foreach (var rootId in dirs.Select(d => scope?.FindRoot(d)?.RootId).Where(id => id != null).Distinct())
                 _indexer.Post(new ReconcileCommand(rootId, Catalog.QueuePriority.Event));
             return;
         }

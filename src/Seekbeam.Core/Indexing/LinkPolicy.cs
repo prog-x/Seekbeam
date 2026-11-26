@@ -27,7 +27,8 @@ public static class LinkPolicy
         string? target = SourceFileAccess.TryGetFinalPath(linkPath);
         if (target == null) { reason = "dangling link"; return false; }
         target = Path.TrimEndingDirectorySeparator(target);
-        if (scope.FindRoot(target) != null) { reason = "target already inside an indexed root"; return false; }
+        // Only the locations count: a folder-index root (a whole drive) records folder names, not the files behind the link.
+        if (scope.FindLocation(target) != null) { reason = "target already inside an indexed location"; return false; }
         string? containerFinal = SourceFileAccess.TryGetFinalPath(containingDirPath);
         if (containerFinal != null)
         {

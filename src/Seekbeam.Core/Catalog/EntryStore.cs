@@ -5,7 +5,7 @@ namespace Seekbeam.Core.Catalog;
 
 public enum EntryKind { File = 0, Directory = 1 }
 
-public sealed record EntryInfo(long Id, long ParentId, long RootId, string Name, EntryKind Kind, long Size, long MTime, long CTime, long Attributes, int Depth)
+public sealed record EntryInfo(long Id, long ParentId, long RootId, string Name, EntryKind Kind, long Size, long MTime, long CTime, long Attributes, int Depth, long XFlags = 0)
 {
     public DateTime ModifiedUtc => MTime > 0 ? DateTime.FromFileTimeUtc(MTime) : DateTime.MinValue;
     public bool IsDirectory => Kind == EntryKind.Directory;
@@ -68,14 +68,14 @@ public sealed class EntryStore
     public static EntryInfo? Get(SqliteConnection con, long id)
     {
         using var cmd = con.CreateCommand();
-        cmd.CommandText = "SELECT id,parent_id,root_id,name,kind,size,mtime,ctime,attrs,depth FROM entries WHERE id=$id";
+        cmd.CommandText = "SELECT id,parent_id,root_id,name,kind,size,mtime,ctime,attrs,depth,xflags FROM entries WHERE id=$id";
         cmd.Parameters.AddWithValue("$id", id);
         using var r = cmd.ExecuteReader();
         return r.Read() ? Read(r) : null;
     }
 
     internal static EntryInfo Read(SqliteDataReader r) =>
-        new(r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), r.GetString(3), (EntryKind)r.GetInt32(4), r.GetInt64(5), r.GetInt64(6), r.GetInt64(7), r.GetInt64(8), r.GetInt32(9));
+        new(r.GetInt64(0), r.GetInt64(1), r.GetInt64(2), r.GetString(3), (EntryKind)r.GetInt32(4), r.GetInt64(5), r.GetInt64(6), r.GetInt64(7), r.GetInt64(8), r.GetInt32(9), r.GetInt64(10));
 
     /// <summary>Hydrates several entries with their full paths using one connection.</summary>
     public List<(EntryInfo Info, string FullPath)> GetWithPaths(IEnumerable<long> ids)
@@ -189,20 +189,26 @@ public sealed class EntryStore
         return cmd.ExecuteScalar() is long id2 ? id2 : null;
     }
 
-    public (long Files, long Dirs) Counts()
+    /// <summary>Files and folders of the indexed locations, and folders of the folder index (outside the locations).</summary>
+    public (long Files, long Dirs, long OutsideDirs) Counts()
     {
         var con = _db.RentReader();
         try
         {
             using var cmd = con.CreateCommand();
-            cmd.CommandText = "SELECT kind, COUNT(*) FROM entries GROUP BY kind";
+            cmd.CommandText = $"SELECT kind, (xflags & {(int)EntryFlags.Outside}) <> 0, COUNT(*) FROM entries GROUP BY 1, 2";
             using var r = cmd.ExecuteReader();
-            long f = 0, d = 0;
-            while (r.Read()) { if (r.GetInt32(0) == 1) d = r.GetInt64(1); else f = r.GetInt64(1); }
-            return (f, d);
+            long f = 0, d = 0, o = 0;
+            while (r.Read())
+            {
+                if (r.GetInt64(1) != 0) o += r.GetInt64(2);
+                else if (r.GetInt32(0) == 1) d = r.GetInt64(2);
+                else f = r.GetInt64(2);
+            }
+            return (f, d, o);
         }
         finally { _db.ReturnReader(con); }
     }
 
-    public static EntryFlags FlagsOf(EntryInfo e) => NameIndexManager.ToFlags((int)e.Kind, e.Attributes, e.ParentId == 0);
+    public static EntryFlags FlagsOf(EntryInfo e) => NameIndexManager.ToFlags((int)e.Kind, e.Attributes, e.ParentId == 0, e.XFlags);
 }
