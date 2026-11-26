@@ -41,7 +41,7 @@ public static class IlAnalyzer
         using var pe = new PEReader(fs);
         var md = pe.GetMetadataReader();
         string asm = md.GetString(md.GetAssemblyDefinition().Name);
-        var sigProvider = new SigNameProvider(md);
+        var sigProvider = new SigNameProvider();
         foreach (var th in md.TypeDefinitions)
         {
             var td = md.GetTypeDefinition(th);
@@ -156,7 +156,8 @@ public static class IlAnalyzer
 
     private static string ParamSig(MethodSignature<string> s) => string.Join(",", s.ParameterTypes);
 
-    private sealed class SigNameProvider(MetadataReader md) : ISignatureTypeProvider<string, object?>
+    // The reader is passed to each callback by the decoder: the provider keeps no state.
+    private sealed class SigNameProvider : ISignatureTypeProvider<string, object?>
     {
         public string GetArrayType(string e, ArrayShape s) => e + "[,]";
         public string GetByReferenceType(string e) => e + "&";

@@ -29,6 +29,7 @@ public sealed class TestEnv : IDisposable
         Open();
     }
 
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(Db), nameof(Writer), nameof(Index), nameof(Entries), nameof(Usage), nameof(Engine))]
     private void Open()
     {
         Db = new CatalogDb(Storage);

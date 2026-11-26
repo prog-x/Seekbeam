@@ -198,7 +198,7 @@ public sealed class StaticAnalysisTests(ITestOutputHelper output)
         foreach (var path in ShippedAssemblies().Where(p => p.Contains("Extraction") || p.Contains("ExtractorHost")))
         {
             var r = IlAnalyzer.Analyze(path);
-            Assert.Empty(r.Calls.Where(IsWriteApi));
+            Assert.DoesNotContain(r.Calls, IsWriteApi);
             Assert.True(r.Methods > 50 || path.Contains("ExtractorHost"));
         }
     }
